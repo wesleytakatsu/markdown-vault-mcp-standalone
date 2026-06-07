@@ -9,6 +9,10 @@
 >
 > **🇬🇧** I built this to solve my own frustration: reconfiguring tokens in Docker Desktop MCP Toolkit, restarting a local REST API plugin, managing port 27124... a pain. This server reads markdown straight from disk. **Works across as many projects as you want, zero reconfiguration.** Copy the folder, build it, done.
 
+**🇧🇷** O MCP do Obsidian é limitado para agentes de IA. Criei este pensando em projetos grandes com muita informação conectada, onde documentos ficam soltos, perdidos, sem vínculo. A proposta: tratar os docs como uma série de informações roteadas — um fluxo simples para alcançar qualquer informação sem custar muitos tokens e sem falhar na busca. Mover blocos de informação entre notas sem quebrar conexões, reorganizar sem medo. Tudo pensado para o agente navegar, entender e modificar a documentação com precisão cirúrgica.
+
+**🇬🇧** The Obsidian MCP is too limited for AI agents. I built this for large projects with deeply connected information, where documents get scattered, lost, unlinked. The idea: treat docs as routed information — a simple flow to reach any piece of data without burning tokens and without search failures. Move information blocks between notes without breaking links, reorganize without fear. Everything designed for the agent to navigate, understand, and modify documentation with surgical precision.
+
 # Markdown Vault MCP standalone
 
 > **🇧🇷** Um MCP server stand-alone focado em documentação técnica para agentes de desenvolvimento de sistemas. Sem aplicativo de notas aberto, sem plugin REST API, sem Docker Desktop, sem MCP Toolkit, sem porta 27124, sem token `Bearer`, sem container, sem gambiarra.  
