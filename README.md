@@ -68,7 +68,10 @@ That's it. The server auto-detects `docs/` in your project root.
 | `search` | Busca texto literal ou regex, com filtros de path, limite e contexto |
 | `append_file` | Adiciona conteúdo ao fim da nota ou dentro de uma seção por heading |
 | `write_file` | Cria nota; sobrescrita exige `overwrite: true` e pode usar `expectedSha256` |
-| `replace_in_file` | Substitui texto literal ou regex dentro de uma nota |
+| `replace_in_file` | Substitui texto literal ou regex dentro de uma nota, com `dryRun`, preview e flags regex |
+| `read_section` | Lê uma seção por heading, com ou sem a linha do heading |
+| `delete_section` | Remove uma seção por heading, com `dryRun` e `expectedSha256` |
+| `move_section` | Move uma seção entre notas, criando o alvo se necessário |
 | `patch_note` | Faz append, prepend ou replace dentro de uma seção por heading |
 | `manage_frontmatter` | Lê, define ou remove chaves simples de frontmatter YAML |
 | `list_tags` | Lista tags de frontmatter e tags inline, com contagem e arquivos opcionais |
@@ -83,6 +86,7 @@ That's it. The server auto-detects `docs/` in your project root.
 | `markdown_vault_find_relevant_notes` | Busca notas relevantes com ranking heurístico |
 | `markdown_vault_safe_rename_note` | Renomeia nota atualizando wikilinks e links Markdown |
 | `markdown_vault_lint` | Linta o vault com checks voltados para IA e documentação Markdown, com fix opcional e dry-run |
+| `markdown_vault_audit` | Combina diagnóstico, lint, tarefas e recomendações em uma visão de saúde do vault |
 | `markdown_vault_generate_agent_briefing` | Gera um briefing curto para uma tarefa de agente |
 
 ## 🇬🇧 Tools
@@ -94,7 +98,10 @@ That's it. The server auto-detects `docs/` in your project root.
 | `search` | Search literal text or regex with path, limit, and context options |
 | `append_file` | Append content to the note end or under a heading section |
 | `write_file` | Create notes; overwrite requires `overwrite: true` and can use `expectedSha256` |
-| `replace_in_file` | Replace literal text or regex matches inside one note |
+| `replace_in_file` | Replace literal text or regex matches inside one note, with `dryRun`, preview, and regex flags |
+| `read_section` | Read one heading section, with or without the heading line |
+| `delete_section` | Delete one heading section, with `dryRun` and `expectedSha256` |
+| `move_section` | Move a section between notes, creating the target if needed |
 | `patch_note` | Append, prepend, or replace content under a heading |
 | `manage_frontmatter` | Get, set, or delete simple YAML frontmatter keys |
 | `list_tags` | List frontmatter and inline tags, with counts and optional files |
@@ -109,6 +116,7 @@ That's it. The server auto-detects `docs/` in your project root.
 | `markdown_vault_find_relevant_notes` | Find relevant notes with heuristic ranking |
 | `markdown_vault_safe_rename_note` | Rename a note and update wikilinks/Markdown links |
 | `markdown_vault_lint` | Lint the vault for AI and Markdown documentation usage, with optional fix and dry-run |
+| `markdown_vault_audit` | Combine diagnostics, lint, tasks, and recommendations into one vault health view |
 | `markdown_vault_generate_agent_briefing` | Generate a short briefing for an agent task |
 
 ## 🇧🇷🇬🇧 Advanced agent-oriented tools

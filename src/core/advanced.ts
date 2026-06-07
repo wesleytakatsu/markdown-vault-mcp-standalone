@@ -166,6 +166,18 @@ export const advancedToolDefinitions: ToolDefinition[] = [
     },
   },
   {
+    name: "markdown_vault_audit",
+    description: "Run a combined vault health audit for agents",
+    inputSchema: {
+      type: "object",
+      properties: {
+        includeTasks: { type: "boolean" },
+        maxIssues: { type: "number" },
+        path: { type: "string" },
+      },
+    },
+  },
+  {
     name: "markdown_vault_generate_agent_briefing",
     description: "Generate a concise task briefing for an AI agent",
     inputSchema: {
@@ -208,6 +220,8 @@ export async function callAdvancedTool(
       return safeRenameNote(vaultRoot, args);
     case "markdown_vault_lint":
       return lintMarkdownVault(vaultRoot, args);
+    case "markdown_vault_audit":
+      return auditVault(vaultRoot, args);
     case "markdown_vault_generate_agent_briefing":
       return generateAgentBriefing(vaultRoot, args);
     default:
@@ -361,17 +375,29 @@ async function listMarkdownFileRefs(
   return files.sort((a, b) => a.rel.localeCompare(b.rel));
 }
 
+const NOTE_CACHE = new Map<
+  string,
+  { mtimeMs: number; note: MarkdownNote; size: number }
+>();
+
 async function loadMarkdownNote(
   vault: Vault,
   ref: { abs: string; rel: string },
 ): Promise<MarkdownNote> {
   await assertRealPathInside(vault, ref.abs);
+  const stat = await fsp.stat(ref.abs);
+  const cacheKey = `${vault.realRoot}:${ref.rel}`;
+  const cached = NOTE_CACHE.get(cacheKey);
+  if (cached && cached.mtimeMs === stat.mtimeMs && cached.size === stat.size) {
+    return cached.note;
+  }
+
   const content = await fsp.readFile(ref.abs, "utf-8");
   const parsed = splitFrontmatter(content);
   const headings = extractHeadings(content);
   const h1 = headings.find((heading) => heading.level === 1);
 
-  return {
+  const note = {
     abs: ref.abs,
     body: parsed.body,
     charCount: content.length,
@@ -387,6 +413,8 @@ async function loadMarkdownNote(
     title: h1?.text ?? null,
     yamlError: parsed.yamlError,
   };
+  NOTE_CACHE.set(cacheKey, { mtimeMs: stat.mtimeMs, note, size: stat.size });
+  return note;
 }
 
 async function loadMarkdownNotes(
@@ -1413,7 +1441,41 @@ async function extractTasks(root: string, args: Record<string, unknown>) {
   const includeDone = args.includeDone === true;
   const groupBy = args.groupBy === "flat" ? "flat" : "file";
   const notes = await loadMarkdownNotes(vault, inputPath);
-  const tasks = [];
+  const tasks = taskItemsFromNotes(notes, includeDone);
+
+  if (groupBy === "flat") {
+    return {
+      count: tasks.length,
+      path: inputPath,
+      tasks,
+    };
+  }
+
+  const grouped = new Map<string, typeof tasks>();
+  for (const task of tasks) {
+    const entries = grouped.get(task.file) ?? [];
+    entries.push(task);
+    grouped.set(task.file, entries);
+  }
+
+  return {
+    count: tasks.length,
+    groups: [...grouped.entries()].map(([file, fileTasks]) => ({
+      file,
+      tasks: fileTasks,
+    })),
+    path: inputPath,
+    tasks,
+  };
+}
+
+function taskItemsFromNotes(notes: MarkdownNote[], includeDone: boolean) {
+  const tasks: Array<{
+    done: boolean;
+    file: string;
+    line: number;
+    text: string;
+  }> = [];
 
   for (const note of notes) {
     const lines = note.content.split(/\r?\n/);
@@ -1445,30 +1507,7 @@ async function extractTasks(root: string, args: Record<string, unknown>) {
     }
   }
 
-  if (groupBy === "flat") {
-    return {
-      count: tasks.length,
-      path: inputPath,
-      tasks,
-    };
-  }
-
-  const grouped = new Map<string, typeof tasks>();
-  for (const task of tasks) {
-    const entries = grouped.get(task.file) ?? [];
-    entries.push(task);
-    grouped.set(task.file, entries);
-  }
-
-  return {
-    count: tasks.length,
-    groups: [...grouped.entries()].map(([file, fileTasks]) => ({
-      file,
-      tasks: fileTasks,
-    })),
-    path: inputPath,
-    tasks,
-  };
+  return tasks;
 }
 
 async function findRelevantNotes(root: string, args: Record<string, unknown>) {
@@ -1999,6 +2038,144 @@ async function lintMarkdownVault(root: string, args: Record<string, unknown>) {
       ...(dryRun ? { wouldFix: fixes.length } : {}),
     },
   };
+}
+
+function addLintStructuralIssues(notes: MarkdownNote[], issues: Issue[]): void {
+  for (const note of notes) {
+    const h1s = note.headings.filter((heading) => heading.level === 1);
+    if (h1s.length > 1) {
+      issues.push({
+        file: note.rel,
+        line: h1s[1].line,
+        message: "File contains multiple H1 headings.",
+        severity: "warning",
+        type: "multiple_h1",
+      });
+    }
+
+    let previousLevel = 0;
+    for (const heading of note.headings) {
+      if (previousLevel > 0 && heading.level > previousLevel + 1) {
+        issues.push({
+          file: note.rel,
+          line: heading.line,
+          message: `Heading jumps from H${previousLevel} to H${heading.level}.`,
+          severity: "warning",
+          type: "heading_level_skip",
+        });
+      }
+      previousLevel = heading.level;
+    }
+
+    if (note.yamlError) {
+      issues.push({
+        file: note.rel,
+        line: 1,
+        message: note.yamlError,
+        severity: "error",
+        type: "frontmatter_invalid",
+      });
+    }
+
+    const lines = note.content.split(/\r?\n/);
+    for (let i = 0; i < lines.length; i += 1) {
+      if (!/[ \t]+$/.test(lines[i])) continue;
+      issues.push({
+        file: note.rel,
+        line: i + 1,
+        message: "Line has trailing spaces.",
+        severity: "warning",
+        type: "trailing_spaces",
+      });
+    }
+  }
+}
+
+async function auditVault(root: string, args: Record<string, unknown>) {
+  const vault = await createVault(root);
+  const inputPath = typeof args.path === "string" ? args.path : "";
+  const includeTasks = args.includeTasks !== false;
+  const maxIssues = clampNumber(args.maxIssues, 20, 1, 200);
+  const notes = await loadMarkdownNotes(vault, inputPath);
+  const allNotes = inputPath ? await loadMarkdownNotes(vault) : notes;
+
+  const diagnosticIssues = buildDiagnosticIssues(
+    notes,
+    new Set([...DEFAULT_DIAGNOSE_CHECKS]),
+    allNotes,
+  );
+  const lintIssues: Issue[] = [];
+  addLintStructuralIssues(notes, lintIssues);
+  const tasks = includeTasks ? taskItemsFromNotes(notes, false) : [];
+  const allIssues = [
+    ...diagnosticIssues.map((issue) => ({ ...issue, source: "diagnose" })),
+    ...lintIssues.map((issue) => ({ ...issue, source: "lint" })),
+  ].sort(issueSort);
+  const errorCount = allIssues.filter((issue) => issue.severity === "error").length;
+  const warningCount = allIssues.filter((issue) => issue.severity === "warning").length;
+  const largeFiles = notes
+    .filter((note) => note.lineCount > 800 || note.charCount > 30000)
+    .map((note) => ({
+      chars: note.charCount,
+      lines: note.lineCount,
+      path: note.rel,
+    }));
+  const score = Math.max(
+    0,
+    Math.round(100 - errorCount * 12 - warningCount * 3 - Math.min(tasks.length, 20) * 0.5),
+  );
+
+  return {
+    path: inputPath,
+    recommendations: auditRecommendations(allIssues, tasks.length, largeFiles.length),
+    summary: {
+      diagnosticIssues: diagnosticIssues.length,
+      errors: errorCount,
+      filesScanned: notes.length,
+      largeFiles: largeFiles.length,
+      lintIssues: lintIssues.length,
+      score,
+      tasks: tasks.length,
+      warnings: warningCount,
+    },
+    topIssues: allIssues.slice(0, maxIssues),
+    ...(includeTasks ? { tasks: tasks.slice(0, maxIssues) } : {}),
+    largeFiles,
+  };
+}
+
+function auditRecommendations(
+  issues: Array<Issue & { source: string }>,
+  taskCount: number,
+  largeFileCount: number,
+): string[] {
+  const recommendations: string[] = [];
+  const issueTypes = new Set(issues.map((issue) => issue.type));
+  if (issueTypes.has("broken_links")) {
+    recommendations.push("Corrigir links quebrados antes de reorganizar notas.");
+  }
+  if (issueTypes.has("broken_anchors")) {
+    recommendations.push("Atualizar anchors de headings após renomear seções.");
+  }
+  if (issueTypes.has("missing_titles")) {
+    recommendations.push("Adicionar H1 em notas sem título para melhorar briefing e contexto.");
+  }
+  if (issueTypes.has("missing_frontmatter")) {
+    recommendations.push("Adicionar frontmatter simples em documentos ativos.");
+  }
+  if (issueTypes.has("heading_level_skip") || issueTypes.has("multiple_h1")) {
+    recommendations.push("Normalizar hierarquia de headings para outlines mais úteis.");
+  }
+  if (largeFileCount > 0) {
+    recommendations.push("Dividir ou resumir arquivos grandes para reduzir custo de contexto.");
+  }
+  if (taskCount > 0) {
+    recommendations.push("Revisar tarefas abertas extraídas do vault.");
+  }
+  if (recommendations.length === 0) {
+    recommendations.push("Nenhuma ação estrutural prioritária encontrada.");
+  }
+  return recommendations;
 }
 
 async function generateAgentBriefing(root: string, args: Record<string, unknown>) {

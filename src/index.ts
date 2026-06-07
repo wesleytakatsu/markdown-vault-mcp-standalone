@@ -550,24 +550,178 @@ function replaceMatches(
   options: {
     all?: boolean;
     caseSensitive?: boolean;
+    contextLines?: number;
+    dotAll?: boolean;
+    maxPreviewMatches?: number;
+    multiline?: boolean;
     regex?: boolean;
+    regexFlags?: string;
     replace: string;
     search: string;
     wholeWord?: boolean;
   },
-): { content: string; replacements: number } {
-  const flags = `${options.all === false ? "" : "g"}${
-    options.caseSensitive ? "" : "i"
-  }`;
+): {
+  changed: boolean;
+  content: string;
+  matches: Array<{
+    column: number;
+    context: string;
+    line: number;
+    match: string;
+    replacement: string;
+  }>;
+  replacements: number;
+} {
   const source = options.regex ? options.search : escapeRegExp(options.search);
   const bounded = options.wholeWord ? `\\b${source}\\b` : source;
+  const flags = buildRegexFlags(options);
   const re = new RegExp(bounded, flags);
+  const contextLines = Math.max(0, Math.min(options.contextLines ?? 0, 10));
+  const maxPreviewMatches = Math.max(0, Math.min(options.maxPreviewMatches ?? 10, 100));
+  const matches = previewRegexMatches(
+    content,
+    re,
+    options.replace,
+    contextLines,
+    maxPreviewMatches,
+  );
   let replacements = 0;
   const next = content.replace(re, () => {
     replacements += 1;
     return options.replace;
   });
-  return { content: next, replacements };
+  return {
+    changed: next !== content,
+    content: next,
+    matches,
+    replacements,
+  };
+}
+
+function buildRegexFlags(options: {
+  all?: boolean;
+  caseSensitive?: boolean;
+  dotAll?: boolean;
+  multiline?: boolean;
+  regexFlags?: string;
+}): string {
+  const flags = new Set<string>();
+  if (options.all !== false) flags.add("g");
+  if (!options.caseSensitive) flags.add("i");
+  if (options.multiline) flags.add("m");
+  if (options.dotAll) flags.add("s");
+
+  for (const flag of options.regexFlags ?? "") {
+    if (!/[dgimsuvy]/.test(flag)) {
+      throw new Error(`Unsupported regex flag: ${flag}`);
+    }
+    if (flag === "g") continue;
+    flags.add(flag);
+  }
+
+  if (options.all === false) flags.delete("g");
+  return [...flags].join("");
+}
+
+function lineColumnAt(content: string, offset: number): { column: number; line: number } {
+  const before = content.slice(0, offset);
+  const lines = before.split(/\r?\n/);
+  return {
+    column: lines[lines.length - 1].length + 1,
+    line: lines.length,
+  };
+}
+
+function lineContext(content: string, line: number, contextLines: number): string {
+  const lines = content.split(/\r?\n/);
+  const start = Math.max(0, line - 1 - contextLines);
+  const end = Math.min(lines.length, line + contextLines);
+  return lines.slice(start, end).join("\n");
+}
+
+function previewRegexMatches(
+  content: string,
+  re: RegExp,
+  replacement: string,
+  contextLines: number,
+  maxPreviewMatches: number,
+): Array<{
+  column: number;
+  context: string;
+  line: number;
+  match: string;
+  replacement: string;
+}> {
+  if (maxPreviewMatches === 0) return [];
+
+  const previewRe = new RegExp(re.source, re.flags.includes("g") ? re.flags : `${re.flags}g`);
+  const matches: Array<{
+    column: number;
+    context: string;
+    line: number;
+    match: string;
+    replacement: string;
+  }> = [];
+
+  let match: RegExpExecArray | null;
+  while ((match = previewRe.exec(content)) !== null) {
+    const position = lineColumnAt(content, match.index);
+    matches.push({
+      ...position,
+      context: lineContext(content, position.line, contextLines),
+      match: match[0],
+      replacement,
+    });
+    if (matches.length >= maxPreviewMatches) break;
+    if (match[0].length === 0) previewRe.lastIndex += 1;
+  }
+
+  return matches;
+}
+
+function sectionContent(
+  content: string,
+  heading: string,
+  includeHeading = true,
+): { endOffset: number; section: string; startOffset: number; target: Heading } {
+  const target = findHeading(content, heading);
+  if (!target) throw new Error(`Heading not found: ${heading}`);
+
+  const startOffset = includeHeading ? target.startOffset : target.contentStartOffset;
+  return {
+    endOffset: target.endOffset,
+    section: content.slice(startOffset, target.endOffset),
+    startOffset,
+    target,
+  };
+}
+
+function deleteSectionContent(
+  content: string,
+  heading: string,
+  includeHeading = true,
+): { next: string; removed: string; target: Heading } {
+  const section = sectionContent(content, heading, includeHeading);
+  const prefix = content.slice(0, section.startOffset).trimEnd();
+  const suffix = content.slice(section.endOffset).replace(/^\s*/, "");
+  const separator = prefix && suffix ? "\n\n" : "";
+  return {
+    next: `${prefix}${separator}${suffix}`,
+    removed: section.section,
+    target: section.target,
+  };
+}
+
+function appendToDocument(content: string, patchContent: string): string {
+  const prefix = content.trimEnd();
+  const insertion = ensureTrailingNewline(patchContent.trimEnd());
+  return prefix ? `${prefix}\n\n${insertion}` : insertion;
+}
+
+function trimToPreview(content: string, maxChars = 1000): string {
+  const trimmed = content.trim();
+  if (trimmed.length <= maxChars) return trimmed;
+  return `${trimmed.slice(0, Math.max(0, maxChars - 3)).trimEnd()}...`;
 }
 
 function removeInlineTagsFromBody(body: string, tagsToRemove: string[]): string {
@@ -817,13 +971,121 @@ server.setRequestHandler(ListToolsRequestSchema, async () => ({
             type: "string",
             description: "Optional SHA-256 guard for the current file content",
           },
+          contextLines: {
+            type: "number",
+            description: "Preview context lines around each match; defaults to 0",
+          },
+          dotAll: {
+            type: "boolean",
+            description: "Regex dotAll mode; equivalent to the s flag",
+          },
+          dryRun: {
+            type: "boolean",
+            description: "Preview matches and output without writing the file",
+          },
+          maxPreviewMatches: {
+            type: "number",
+            description: "Maximum preview matches to return; defaults to 10",
+          },
+          multiline: {
+            type: "boolean",
+            description: "Regex multiline mode; equivalent to the m flag",
+          },
           path: { type: "string", description: "Markdown file path relative to vault root" },
           regex: { type: "boolean" },
+          regexFlags: {
+            type: "string",
+            description: "Additional regex flags; g is controlled by all",
+          },
           replace: { type: "string" },
           search: { type: "string" },
           wholeWord: { type: "boolean" },
         },
         required: ["path", "search", "replace"],
+      },
+    },
+    {
+      name: "read_section",
+      description: "Read a markdown heading section from one note",
+      inputSchema: {
+        type: "object",
+        properties: {
+          heading: { type: "string" },
+          includeHeading: {
+            type: "boolean",
+            description: "Include the heading line in the returned content; defaults to true",
+          },
+          path: { type: "string", description: "Markdown file path relative to vault root" },
+        },
+        required: ["path", "heading"],
+      },
+    },
+    {
+      name: "delete_section",
+      description: "Delete a markdown heading section from one note",
+      inputSchema: {
+        type: "object",
+        properties: {
+          dryRun: { type: "boolean" },
+          expectedSha256: {
+            type: "string",
+            description: "Optional SHA-256 guard for the current file content",
+          },
+          heading: { type: "string" },
+          includeHeading: {
+            type: "boolean",
+            description: "Delete the heading line too; defaults to true",
+          },
+          path: { type: "string", description: "Markdown file path relative to vault root" },
+        },
+        required: ["path", "heading"],
+      },
+    },
+    {
+      name: "move_section",
+      description: "Move a markdown heading section from one note to another note",
+      inputSchema: {
+        type: "object",
+        properties: {
+          createTarget: {
+            type: "boolean",
+            description: "Create target note if it does not exist; defaults to true",
+          },
+          createTargetHeading: {
+            type: "boolean",
+            description: "Create target heading if append/prepend under heading is requested",
+          },
+          dryRun: { type: "boolean" },
+          expectedSourceSha256: {
+            type: "string",
+            description: "Optional SHA-256 guard for the source file",
+          },
+          expectedTargetSha256: {
+            type: "string",
+            description: "Optional SHA-256 guard for the target file",
+          },
+          heading: { type: "string", description: "Source section heading" },
+          includeHeading: {
+            type: "boolean",
+            description: "Move the heading line too; defaults to true",
+          },
+          operation: {
+            type: "string",
+            enum: ["append", "prepend"],
+            description: "How to insert under targetHeading; defaults to append",
+          },
+          sourcePath: { type: "string" },
+          targetHeading: {
+            type: "string",
+            description: "Optional heading in the target note to append/prepend under",
+          },
+          targetHeadingLevel: {
+            type: "number",
+            description: "Heading level when createTargetHeading is true; defaults to 2",
+          },
+          targetPath: { type: "string" },
+        },
+        required: ["sourcePath", "targetPath", "heading"],
       },
     },
     {
@@ -1136,39 +1398,213 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
       const {
         all,
         caseSensitive,
+        contextLines,
+        dotAll,
+        dryRun,
         expectedSha256,
+        maxPreviewMatches,
+        multiline,
         path: notePath,
         regex,
+        regexFlags,
         replace,
         search,
         wholeWord,
       } = args as {
         all?: boolean;
         caseSensitive?: boolean;
+        contextLines?: number;
+        dotAll?: boolean;
+        dryRun?: boolean;
         expectedSha256?: string;
+        maxPreviewMatches?: number;
+        multiline?: boolean;
         path: string;
         regex?: boolean;
+        regexFlags?: string;
         replace: string;
         search: string;
         wholeWord?: boolean;
       };
       const abs = resolveNote(notePath);
       const guarded = await assertExpectedSha256(abs, expectedSha256);
+      const beforeSha256 = guarded ? sha256(guarded) : undefined;
       const current = guarded ?? (await fsp.readFile(abs, "utf-8"));
       const result = replaceMatches(current, {
         all,
         caseSensitive,
+        contextLines,
+        dotAll,
+        maxPreviewMatches,
+        multiline,
         regex,
+        regexFlags,
         replace,
         search,
         wholeWord,
       });
 
-      await fsp.writeFile(abs, result.content, "utf-8");
+      if (!dryRun && result.changed) {
+        await fsp.writeFile(abs, result.content, "utf-8");
+      }
       return jsonResponse({
+        changed: result.changed,
+        ...(dryRun ? { dryRun: true } : {}),
+        matches: result.matches,
         path: notePath,
         replacements: result.replacements,
+        sha256After: sha256(result.content),
+        sha256Before: beforeSha256 ?? sha256(current),
         sha256: sha256(result.content),
+        wouldWrite: result.changed && dryRun === true,
+      });
+    }
+
+    case "read_section": {
+      const {
+        heading,
+        includeHeading = true,
+        path: notePath,
+      } = args as {
+        heading: string;
+        includeHeading?: boolean;
+        path: string;
+      };
+      const abs = resolveNote(notePath);
+      const current = await fsp.readFile(abs, "utf-8");
+      const section = sectionContent(current, heading, includeHeading);
+      return jsonResponse({
+        content: section.section,
+        heading,
+        includeHeading,
+        path: notePath,
+        section: {
+          endOffset: section.endOffset,
+          line: section.target.line,
+          startOffset: section.startOffset,
+        },
+        sha256: sha256(current),
+      });
+    }
+
+    case "delete_section": {
+      const {
+        dryRun,
+        expectedSha256,
+        heading,
+        includeHeading = true,
+        path: notePath,
+      } = args as {
+        dryRun?: boolean;
+        expectedSha256?: string;
+        heading: string;
+        includeHeading?: boolean;
+        path: string;
+      };
+      const abs = resolveNote(notePath);
+      const guarded = await assertExpectedSha256(abs, expectedSha256);
+      const current = guarded ?? (await fsp.readFile(abs, "utf-8"));
+      const result = deleteSectionContent(current, heading, includeHeading);
+      if (!dryRun && result.next !== current) {
+        await fsp.writeFile(abs, result.next, "utf-8");
+      }
+      return jsonResponse({
+        changed: result.next !== current,
+        ...(dryRun ? { dryRun: true } : {}),
+        heading,
+        includeHeading,
+        path: notePath,
+        removedChars: result.removed.length,
+        removedPreview: trimToPreview(result.removed),
+        sha256After: sha256(result.next),
+        sha256Before: sha256(current),
+        wouldWrite: dryRun === true && result.next !== current,
+      });
+    }
+
+    case "move_section": {
+      const {
+        createTarget = true,
+        createTargetHeading = false,
+        dryRun,
+        expectedSourceSha256,
+        expectedTargetSha256,
+        heading,
+        includeHeading = true,
+        operation = "append",
+        sourcePath,
+        targetHeading,
+        targetHeadingLevel = 2,
+        targetPath,
+      } = args as {
+        createTarget?: boolean;
+        createTargetHeading?: boolean;
+        dryRun?: boolean;
+        expectedSourceSha256?: string;
+        expectedTargetSha256?: string;
+        heading: string;
+        includeHeading?: boolean;
+        operation?: "append" | "prepend";
+        sourcePath: string;
+        targetHeading?: string;
+        targetHeadingLevel?: number;
+        targetPath: string;
+      };
+      const sourceAbs = resolveNote(sourcePath);
+      const targetAbs = resolveNote(targetPath);
+      if (sourceAbs === targetAbs) {
+        throw new Error("move_section does not support moving within the same file");
+      }
+
+      const guardedSource = await assertExpectedSha256(sourceAbs, expectedSourceSha256);
+      const sourceCurrent = guardedSource ?? (await fsp.readFile(sourceAbs, "utf-8"));
+      const sourceResult = deleteSectionContent(sourceCurrent, heading, includeHeading);
+
+      const targetExists = await fileExists(targetAbs);
+      if (!targetExists && !createTarget) {
+        throw new Error("Target file does not exist. Pass createTarget: true to create it.");
+      }
+      let targetCurrent = "";
+      if (targetExists) {
+        const guardedTarget = await assertExpectedSha256(targetAbs, expectedTargetSha256);
+        targetCurrent = guardedTarget ?? (await fsp.readFile(targetAbs, "utf-8"));
+      }
+
+      const targetNext = targetHeading
+        ? patchHeadingContent(
+            targetCurrent,
+            targetHeading,
+            operation,
+            sourceResult.removed,
+            createTargetHeading,
+            targetHeadingLevel,
+          )
+        : appendToDocument(targetCurrent, sourceResult.removed);
+
+      if (!dryRun) {
+        await fsp.writeFile(sourceAbs, sourceResult.next, "utf-8");
+        await fsp.mkdir(path.dirname(targetAbs), { recursive: true });
+        await fsp.writeFile(targetAbs, targetNext, "utf-8");
+      }
+
+      return jsonResponse({
+        ...(dryRun ? { dryRun: true } : {}),
+        heading,
+        includeHeading,
+        movedChars: sourceResult.removed.length,
+        movedPreview: trimToPreview(sourceResult.removed),
+        source: {
+          path: sourcePath,
+          sha256After: sha256(sourceResult.next),
+          sha256Before: sha256(sourceCurrent),
+        },
+        target: {
+          created: !targetExists,
+          path: targetPath,
+          sha256After: sha256(targetNext),
+          sha256Before: targetExists ? sha256(targetCurrent) : null,
+        },
+        wouldWrite: dryRun === true,
       });
     }
 

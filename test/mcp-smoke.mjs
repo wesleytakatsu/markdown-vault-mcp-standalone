@@ -252,11 +252,15 @@ try {
     "list_tags",
     "manage_frontmatter",
     "manage_tags",
+    "delete_section",
+    "move_section",
     "patch_note",
     "read_file",
+    "read_section",
     "replace_in_file",
     "search",
     "write_file",
+    "markdown_vault_audit",
     "markdown_vault_build_context_pack",
     "markdown_vault_diagnose_docs",
     "markdown_vault_extract_tasks",
@@ -358,6 +362,79 @@ try {
     }),
   );
   assert.equal(replace.replacements, 1);
+
+  const replaceDryRun = parseToolJson(
+    await tool("replace_in_file", {
+      dryRun: true,
+      maxPreviewMatches: 3,
+      multiline: true,
+      path: "notes/example.md",
+      regex: true,
+      replace: "## $1",
+      search: "^### (Created)",
+    }),
+  );
+  assert.equal(replaceDryRun.dryRun, true);
+  assert.equal(replaceDryRun.replacements, 1);
+  assert.equal(replaceDryRun.wouldWrite, true);
+  assert.equal(replaceDryRun.matches[0].line > 0, true);
+
+  const createdSection = parseToolJson(
+    await tool("read_section", {
+      heading: "Created",
+      path: "notes/example.md",
+    }),
+  );
+  assert.match(createdSection.content, /### Created/);
+  assert.match(createdSection.content, /created section/);
+
+  const deleteSectionDryRun = parseToolJson(
+    await tool("delete_section", {
+      dryRun: true,
+      heading: "Created",
+      path: "notes/example.md",
+    }),
+  );
+  assert.equal(deleteSectionDryRun.dryRun, true);
+  assert.equal(deleteSectionDryRun.wouldWrite, true);
+  assert.match(deleteSectionDryRun.removedPreview, /Created/);
+
+  await tool("write_file", {
+    content: "# Section Source\n\n## Move Me\n\nMoved body.\n\n## Keep Me\n\nKept body.\n",
+    path: "notes/section-source.md",
+  });
+  const moveSectionDryRun = parseToolJson(
+    await tool("move_section", {
+      dryRun: true,
+      heading: "Move Me",
+      sourcePath: "notes/section-source.md",
+      targetPath: "notes/section-target.md",
+    }),
+  );
+  assert.equal(moveSectionDryRun.dryRun, true);
+  assert.equal(moveSectionDryRun.target.created, true);
+  await assert.rejects(
+    readFile(path.join(vault, "notes", "section-target.md"), "utf-8"),
+  );
+  const moveSection = parseToolJson(
+    await tool("move_section", {
+      heading: "Move Me",
+      sourcePath: "notes/section-source.md",
+      targetPath: "notes/section-target.md",
+    }),
+  );
+  assert.equal(moveSection.target.created, true);
+  const movedTarget = await readFile(
+    path.join(vault, "notes", "section-target.md"),
+    "utf-8",
+  );
+  assert.match(movedTarget, /## Move Me/);
+  const movedSource = await readFile(
+    path.join(vault, "notes", "section-source.md"),
+    "utf-8",
+  );
+  assert.doesNotMatch(movedSource, /Move Me/);
+  assert.match(movedSource, /Keep Me/);
 
   await tool("manage_frontmatter", {
     action: "set",
@@ -552,6 +629,18 @@ try {
   assert.ok(diagnostics.issues.some((issue) => issue.type === "missing_titles"));
   assert.ok(diagnostics.issues.some((issue) => issue.type === "missing_frontmatter"));
   assert.ok(diagnostics.issues.some((issue) => issue.type === "large_files"));
+
+  const audit = parseToolJson(
+    await tool("markdown_vault_audit", {
+      maxIssues: 10,
+      path: "docs",
+    }),
+  );
+  assert.ok(audit.summary.filesScanned >= 7);
+  assert.ok(audit.summary.diagnosticIssues >= 1);
+  assert.ok(audit.summary.lintIssues >= 1);
+  assert.ok(audit.topIssues.length <= 10);
+  assert.ok(audit.recommendations.length >= 1);
 
   const tasks = parseToolJson(
     await tool("markdown_vault_extract_tasks", {
