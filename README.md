@@ -1,27 +1,12 @@
 ![Takatsu's Projects](https://wesleytakatsu.github.io/Pagina-Apresentacao-Pessoal/media/img/Logo-Takatsu-Projetos.png)
 
-*[Conheça meu Linkedin!](https://www.linkedin.com/in/wesleytakatsu/)*  
-*[Discover my Linkedin!](https://www.linkedin.com/in/wesleytakatsu/)*
-
 <br>
 
-> **🇧🇷** Criei isso pra resolver um problema meu: ficar reconfigurando token no Docker Desktop MCP Toolkit, reiniciando plugin REST API local, gerenciando porta 27124... chato demais. Esse server lê markdown direto do disco. **Funciona em quantos projetos você quiser, sem reconfigurar nada.** Copia a pasta, builda, e já era.
->
-> **🇬🇧** I built this to solve my own frustration: reconfiguring tokens in Docker Desktop MCP Toolkit, restarting a local REST API plugin, managing port 27124... a pain. This server reads markdown straight from disk. **Works across as many projects as you want, zero reconfiguration.** Copy the folder, build it, done.
+**🇧🇷** Roteamento de conhecimento para agentes de IA — navegação entre documentos por links, sem busca cega, sem desperdício de token. O MCP do Obsidian é limitado para agentes, então criei este para projetos grandes onde informação conectada se perde. Aqui os docs viram informação roteada: fluxo simples, sem custar muito token, sem falhar na busca. É um MCP server stand-alone focado em documentação técnica para agentes. Sem app aberto, sem plugin REST API, sem Docker, sem porta, sem container, sem gambiarra. Você tem `docs/` com markdown? Já tem um vault. Clona do repositório, builda, configura no MCP da sua IDE ou CLI — zero dependência externa, zero serviço rodando.
 
-**🇧🇷** O MCP do Obsidian é limitado para agentes de IA. Criei este pensando em projetos grandes com muita informação conectada, onde documentos ficam soltos, perdidos, sem vínculo. A proposta: tratar os docs como uma série de informações roteadas — um fluxo simples para alcançar qualquer informação sem custar muitos tokens e sem falhar na busca. Mover blocos de informação entre notas sem quebrar conexões, reorganizar sem medo. Tudo pensado para o agente navegar, entender e modificar a documentação com precisão cirúrgica.
-
-**🇬🇧** The Obsidian MCP is too limited for AI agents. I built this for large projects with deeply connected information, where documents get scattered, lost, unlinked. The idea: treat docs as routed information — a simple flow to reach any piece of data without burning tokens and without search failures. Move information blocks between notes without breaking links, reorganize without fear. Everything designed for the agent to navigate, understand, and modify documentation with surgical precision.
+**🇬🇧** Knowledge routing for AI agents — navigate between documents through links, no blind search, no token waste. Obsidian MCP is too limited for agents, so I built this for large projects where connected information gets lost. Docs become routed information: simple flow, no token waste, no search failures. A standalone MCP server focused on technical documentation for development agents. No app running, no REST API plugin, no Docker, no ports, no containers, no hacks. You have `docs/` with markdown? You already have a vault. Clone from repo, build, hook it into your IDE or CLI's MCP config — zero external dependencies, zero services running.
 
 # Markdown Vault MCP standalone
-
-> **🇧🇷** Um MCP server stand-alone focado em documentação técnica para agentes de desenvolvimento de sistemas. Sem aplicativo de notas aberto, sem plugin REST API, sem Docker Desktop, sem MCP Toolkit, sem porta 27124, sem token `Bearer`, sem container, sem gambiarra.  
-> Você tem uma pasta `docs/` com markdown? Então você já tem um vault. Este MCP server lê seus arquivos direto do disco — leve, instantâneo, sem serviços externos.  
-> Copiou a pasta, rodou `npm install && npm run build`, e seus agentes de IA já enxergam tudo. Simples assim.
->
-> **🇬🇧** A standalone MCP server focused on technical documentation for systems development agents. No notes app running, no REST API plugin, no Docker Desktop, no MCP Toolkit, no port 27124, no `Bearer` token, no containers, no hacks.  
-> You have a `docs/` folder with markdown? Then you already have a vault. This MCP server reads your files straight from disk — lightweight, instant, no external services.  
-> Copy the folder, run `npm install && npm run build`, and your AI agents can see everything. That's it.
 
 Works with any MCP-compatible tool: OpenCode, Claude Code CLI, VS Code, Cursor, Windsurf, MCP Toolkit, and more.
 
