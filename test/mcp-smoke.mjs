@@ -254,6 +254,9 @@ try {
     "manage_tags",
     "delete_section",
     "move_section",
+    "markdown_vault_delete_section",
+    "markdown_vault_move_section",
+    "markdown_vault_read_section",
     "patch_note",
     "read_file",
     "read_section",
@@ -404,7 +407,7 @@ try {
     path: "notes/section-source.md",
   });
   const moveSectionDryRun = parseToolJson(
-    await tool("move_section", {
+    await tool("markdown_vault_move_section", {
       dryRun: true,
       heading: "Move Me",
       sourcePath: "notes/section-source.md",
@@ -417,7 +420,7 @@ try {
     readFile(path.join(vault, "notes", "section-target.md"), "utf-8"),
   );
   const moveSection = parseToolJson(
-    await tool("move_section", {
+    await tool("markdown_vault_move_section", {
       heading: "Move Me",
       sourcePath: "notes/section-source.md",
       targetPath: "notes/section-target.md",

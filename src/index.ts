@@ -1021,6 +1021,22 @@ server.setRequestHandler(ListToolsRequestSchema, async () => ({
       },
     },
     {
+      name: "markdown_vault_read_section",
+      description: "Alias for read_section; read a markdown heading section from one note",
+      inputSchema: {
+        type: "object",
+        properties: {
+          heading: { type: "string" },
+          includeHeading: {
+            type: "boolean",
+            description: "Include the heading line in the returned content; defaults to true",
+          },
+          path: { type: "string", description: "Markdown file path relative to vault root" },
+        },
+        required: ["path", "heading"],
+      },
+    },
+    {
       name: "delete_section",
       description: "Delete a markdown heading section from one note",
       inputSchema: {
@@ -1042,8 +1058,76 @@ server.setRequestHandler(ListToolsRequestSchema, async () => ({
       },
     },
     {
+      name: "markdown_vault_delete_section",
+      description: "Alias for delete_section; delete a markdown heading section from one note",
+      inputSchema: {
+        type: "object",
+        properties: {
+          dryRun: { type: "boolean" },
+          expectedSha256: {
+            type: "string",
+            description: "Optional SHA-256 guard for the current file content",
+          },
+          heading: { type: "string" },
+          includeHeading: {
+            type: "boolean",
+            description: "Delete the heading line too; defaults to true",
+          },
+          path: { type: "string", description: "Markdown file path relative to vault root" },
+        },
+        required: ["path", "heading"],
+      },
+    },
+    {
       name: "move_section",
       description: "Move a markdown heading section from one note to another note",
+      inputSchema: {
+        type: "object",
+        properties: {
+          createTarget: {
+            type: "boolean",
+            description: "Create target note if it does not exist; defaults to true",
+          },
+          createTargetHeading: {
+            type: "boolean",
+            description: "Create target heading if append/prepend under heading is requested",
+          },
+          dryRun: { type: "boolean" },
+          expectedSourceSha256: {
+            type: "string",
+            description: "Optional SHA-256 guard for the source file",
+          },
+          expectedTargetSha256: {
+            type: "string",
+            description: "Optional SHA-256 guard for the target file",
+          },
+          heading: { type: "string", description: "Source section heading" },
+          includeHeading: {
+            type: "boolean",
+            description: "Move the heading line too; defaults to true",
+          },
+          operation: {
+            type: "string",
+            enum: ["append", "prepend"],
+            description: "How to insert under targetHeading; defaults to append",
+          },
+          sourcePath: { type: "string" },
+          targetHeading: {
+            type: "string",
+            description: "Optional heading in the target note to append/prepend under",
+          },
+          targetHeadingLevel: {
+            type: "number",
+            description: "Heading level when createTargetHeading is true; defaults to 2",
+          },
+          targetPath: { type: "string" },
+        },
+        required: ["sourcePath", "targetPath", "heading"],
+      },
+    },
+    {
+      name: "markdown_vault_move_section",
+      description: "Alias for move_section; move a markdown heading section between notes",
       inputSchema: {
         type: "object",
         properties: {
@@ -1460,7 +1544,8 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
       });
     }
 
-    case "read_section": {
+    case "read_section":
+    case "markdown_vault_read_section": {
       const {
         heading,
         includeHeading = true,
@@ -1487,7 +1572,8 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
       });
     }
 
-    case "delete_section": {
+    case "delete_section":
+    case "markdown_vault_delete_section": {
       const {
         dryRun,
         expectedSha256,
@@ -1522,7 +1608,8 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
       });
     }
 
-    case "move_section": {
+    case "move_section":
+    case "markdown_vault_move_section": {
       const {
         createTarget = true,
         createTargetHeading = false,

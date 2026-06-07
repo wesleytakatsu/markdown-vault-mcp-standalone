@@ -69,9 +69,9 @@ That's it. The server auto-detects `docs/` in your project root.
 | `append_file` | Adiciona conteúdo ao fim da nota ou dentro de uma seção por heading |
 | `write_file` | Cria nota; sobrescrita exige `overwrite: true` e pode usar `expectedSha256` |
 | `replace_in_file` | Substitui texto literal ou regex dentro de uma nota, com `dryRun`, preview e flags regex |
-| `read_section` | Lê uma seção por heading, com ou sem a linha do heading |
-| `delete_section` | Remove uma seção por heading, com `dryRun` e `expectedSha256` |
-| `move_section` | Move uma seção entre notas, criando o alvo se necessário |
+| `read_section` / `markdown_vault_read_section` | Lê uma seção por heading, com ou sem a linha do heading |
+| `delete_section` / `markdown_vault_delete_section` | Remove uma seção por heading, com `dryRun` e `expectedSha256` |
+| `move_section` / `markdown_vault_move_section` | Move uma seção entre notas, criando o alvo se necessário |
 | `patch_note` | Faz append, prepend ou replace dentro de uma seção por heading |
 | `manage_frontmatter` | Lê, define ou remove chaves simples de frontmatter YAML |
 | `list_tags` | Lista tags de frontmatter e tags inline, com contagem e arquivos opcionais |
@@ -99,9 +99,9 @@ That's it. The server auto-detects `docs/` in your project root.
 | `append_file` | Append content to the note end or under a heading section |
 | `write_file` | Create notes; overwrite requires `overwrite: true` and can use `expectedSha256` |
 | `replace_in_file` | Replace literal text or regex matches inside one note, with `dryRun`, preview, and regex flags |
-| `read_section` | Read one heading section, with or without the heading line |
-| `delete_section` | Delete one heading section, with `dryRun` and `expectedSha256` |
-| `move_section` | Move a section between notes, creating the target if needed |
+| `read_section` / `markdown_vault_read_section` | Read one heading section, with or without the heading line |
+| `delete_section` / `markdown_vault_delete_section` | Delete one heading section, with `dryRun` and `expectedSha256` |
+| `move_section` / `markdown_vault_move_section` | Move a section between notes, creating the target if needed |
 | `patch_note` | Append, prepend, or replace content under a heading |
 | `manage_frontmatter` | Get, set, or delete simple YAML frontmatter keys |
 | `list_tags` | List frontmatter and inline tags, with counts and optional files |
@@ -124,6 +124,119 @@ That's it. The server auto-detects `docs/` in your project root.
 Estas ferramentas foram pensadas para agentes que precisam entender, reorganizar e usar documentação Markdown sem carregar o vault inteiro no contexto. Elas funcionam direto no filesystem, sem app externo aberto, sem plugin REST API, sem porta HTTP e sem Docker.
 
 These tools are built for agents that need to understand, reorganize, and use markdown docs without loading the whole vault into context. They work directly on the filesystem, with no external app open, no REST API plugin, no HTTP port, and no Docker.
+
+### `replace_in_file` dry-run and regex flags
+
+`replace_in_file` can preview replacements before writing and supports regex flags useful for multiline Markdown edits.
+
+```json
+{
+  "input": {
+    "path": "docs/network-contracts/client-to-server.md",
+    "search": "^### ",
+    "replace": "## ",
+    "regex": true,
+    "multiline": true,
+    "dryRun": true,
+    "contextLines": 1,
+    "maxPreviewMatches": 5
+  },
+  "output": {
+    "dryRun": true,
+    "replacements": 21,
+    "wouldWrite": true,
+    "matches": [
+      { "line": 9, "column": 1, "match": "### ", "replacement": "## " }
+    ]
+  }
+}
+```
+
+### `markdown_vault_read_section`
+
+Alias: `read_section`.
+
+```json
+{
+  "input": {
+    "path": "docs/backend.md",
+    "heading": "Pathfinding",
+    "includeHeading": true
+  },
+  "output": {
+    "path": "docs/backend.md",
+    "heading": "Pathfinding",
+    "content": "## Pathfinding\n\n..."
+  }
+}
+```
+
+### `markdown_vault_delete_section`
+
+Alias: `delete_section`.
+
+```json
+{
+  "input": {
+    "path": "docs/old-plan.md",
+    "heading": "Obsolete Section",
+    "dryRun": true
+  },
+  "output": {
+    "dryRun": true,
+    "wouldWrite": true,
+    "removedPreview": "## Obsolete Section\n\n..."
+  }
+}
+```
+
+### `markdown_vault_move_section`
+
+Alias: `move_section`.
+
+Moves a complete heading section from one note to another. By default, the heading line is moved too and the target note is created when missing.
+
+```json
+{
+  "input": {
+    "sourcePath": "docs/planejados/colisao-arvores.md",
+    "targetPath": "docs/planejados/colisao-arvores-sequencia-final.md",
+    "heading": "Sequencia exata de implementacao recomendada",
+    "dryRun": true
+  },
+  "output": {
+    "dryRun": true,
+    "wouldWrite": true,
+    "movedChars": 4200,
+    "source": { "path": "docs/planejados/colisao-arvores.md" },
+    "target": { "path": "docs/planejados/colisao-arvores-sequencia-final.md" }
+  }
+}
+```
+
+### `markdown_vault_audit`
+
+Runs a combined health check: diagnostics, lint-style structural checks, open tasks, large files and recommendations.
+
+```json
+{
+  "input": {
+    "path": "docs",
+    "maxIssues": 20,
+    "includeTasks": true
+  },
+  "output": {
+    "summary": {
+      "filesScanned": 32,
+      "errors": 0,
+      "warnings": 0,
+      "tasks": 3,
+      "score": 98
+    },
+    "recommendations": ["Revisar tarefas abertas extraidas do vault."]
+  }
+}
+```
 
 ### `markdown_vault_get_backlinks`
 
