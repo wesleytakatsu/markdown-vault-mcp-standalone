@@ -45,7 +45,7 @@ type Heading = {
 };
 
 const VAULT_PATH =
-  process.env.OBSIDIAN_VAULT_PATH ?? (() => {
+  process.env.MARKDOWN_VAULT_PATH ?? (() => {
     const fromScript = path.resolve(
       MODULE_PATH,
       "../../../docs",
@@ -647,7 +647,7 @@ async function listAllTags(options: {
 }
 
 function noteUri(relPath: string): string {
-  return `obsidian://vault/${relPath
+  return `markdown-vault://vault/${relPath
     .split("/")
     .map((part) => encodeURIComponent(part))
     .join("/")}`;
@@ -655,7 +655,7 @@ function noteUri(relPath: string): string {
 
 function pathFromNoteUri(uri: string): string {
   const parsed = new URL(uri);
-  if (parsed.protocol !== "obsidian:" || parsed.hostname !== "vault") {
+  if (parsed.protocol !== "markdown-vault:" || parsed.hostname !== "vault") {
     throw new Error(`Unsupported resource URI: ${uri}`);
   }
   return parsed.pathname
@@ -1377,13 +1377,13 @@ server.setRequestHandler(ListResourcesRequestSchema, async () => {
       description: "Standalone server status and vault configuration",
       mimeType: JSON_MIME,
       name: "Markdown Vault MCP status",
-      uri: "obsidian://status",
+      uri: "markdown-vault://status",
     },
     {
       description: "All vault tags with usage counts",
       mimeType: JSON_MIME,
       name: "Vault tags",
-      uri: "obsidian://tags",
+      uri: "markdown-vault://tags",
     },
   ];
 
@@ -1407,7 +1407,7 @@ server.setRequestHandler(ListResourceTemplatesRequestSchema, async () => ({
       description: "Read a markdown note by vault-relative path",
       mimeType: JSON_MIME,
       name: "Vault note",
-      uriTemplate: "obsidian://vault/{path}",
+      uriTemplate: "markdown-vault://vault/{path}",
     },
   ],
 }));
@@ -1415,7 +1415,7 @@ server.setRequestHandler(ListResourceTemplatesRequestSchema, async () => ({
 server.setRequestHandler(ReadResourceRequestSchema, async (request) => {
   const { uri } = request.params;
 
-  if (uri === "obsidian://status") {
+  if (uri === "markdown-vault://status") {
     const files = await listMarkdownFiles();
     return {
       contents: [
@@ -1440,7 +1440,7 @@ server.setRequestHandler(ReadResourceRequestSchema, async (request) => {
     };
   }
 
-  if (uri === "obsidian://tags") {
+  if (uri === "markdown-vault://tags") {
     return {
       contents: [
         {
@@ -1452,7 +1452,7 @@ server.setRequestHandler(ReadResourceRequestSchema, async (request) => {
     };
   }
 
-  if (uri.startsWith("obsidian://vault/")) {
+  if (uri.startsWith("markdown-vault://vault/")) {
     const relPath = pathFromNoteUri(uri);
     return {
       contents: [
@@ -1470,7 +1470,7 @@ server.setRequestHandler(ReadResourceRequestSchema, async (request) => {
 
 async function main() {
   if (!VAULT_PATH) {
-    console.error("OBSIDIAN_VAULT_PATH not set and no docs/ found.");
+    console.error("MARKDOWN_VAULT_PATH not set and no docs/ found.");
     console.error(
       "Set env var or place this server so that docs/ exists relative to it.",
     );

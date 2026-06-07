@@ -5,17 +5,17 @@
 
 <br>
 
-> **🇧🇷** Criei isso pra resolver um problema meu: ficar reconfigurando token no Docker Desktop MCP Toolkit, reiniciando plugin do Obsidian REST API, gerenciando porta 27124... chato demais. Esse server lê markdown direto do disco. **Funciona em quantos projetos você quiser, sem reconfigurar nada.** Copia a pasta, builda, e já era.
+> **🇧🇷** Criei isso pra resolver um problema meu: ficar reconfigurando token no Docker Desktop MCP Toolkit, reiniciando plugin REST API local, gerenciando porta 27124... chato demais. Esse server lê markdown direto do disco. **Funciona em quantos projetos você quiser, sem reconfigurar nada.** Copia a pasta, builda, e já era.
 >
-> **🇬🇧** I built this to solve my own frustration: reconfiguring tokens in Docker Desktop MCP Toolkit, restarting the Obsidian REST API plugin, managing port 27124... a pain. This server reads markdown straight from disk. **Works across as many projects as you want, zero reconfiguration.** Copy the folder, build it, done.
+> **🇬🇧** I built this to solve my own frustration: reconfiguring tokens in Docker Desktop MCP Toolkit, restarting a local REST API plugin, managing port 27124... a pain. This server reads markdown straight from disk. **Works across as many projects as you want, zero reconfiguration.** Copy the folder, build it, done.
 
 # Markdown Vault MCP standalone
 
-> **🇧🇷** Inspirado no [Obsidian MCP](https://github.com/obsidianmd/obsidian-mcp), mas criado para ir além: um MCP server focado em documentação técnica para agentes de desenvolvimento de sistemas. Sem Obsidian aberto, sem plugin REST API, sem Docker Desktop, sem MCP Toolkit, sem porta 27124, sem token `Bearer`, sem container, sem gambiarra.  
+> **🇧🇷** Um MCP server stand-alone focado em documentação técnica para agentes de desenvolvimento de sistemas. Sem aplicativo de notas aberto, sem plugin REST API, sem Docker Desktop, sem MCP Toolkit, sem porta 27124, sem token `Bearer`, sem container, sem gambiarra.  
 > Você tem uma pasta `docs/` com markdown? Então você já tem um vault. Este MCP server lê seus arquivos direto do disco — leve, instantâneo, sem serviços externos.  
 > Copiou a pasta, rodou `npm install && npm run build`, e seus agentes de IA já enxergam tudo. Simples assim.
 >
-> **🇬🇧** Inspired by [Obsidian MCP](https://github.com/obsidianmd/obsidian-mcp), but built to go further: an MCP server focused on technical documentation for systems development agents. No Obsidian running, no REST API plugin, no Docker Desktop, no MCP Toolkit, no port 27124, no `Bearer` token, no containers, no hacks.  
+> **🇬🇧** A standalone MCP server focused on technical documentation for systems development agents. No notes app running, no REST API plugin, no Docker Desktop, no MCP Toolkit, no port 27124, no `Bearer` token, no containers, no hacks.  
 > You have a `docs/` folder with markdown? Then you already have a vault. This MCP server reads your files straight from disk — lightweight, instant, no external services.  
 > Copy the folder, run `npm install && npm run build`, and your AI agents can see everything. That's it.
 
@@ -27,10 +27,10 @@ Works with any MCP-compatible tool: OpenCode, Claude Code CLI, VS Code, Cursor, 
 
 ```bash
 # 1. Copie esta pasta para seu projeto
-cp -r obsidian-mcp-standalone /caminho/do/seu/projeto/obsidian-mcp
+cp -r markdown-vault-mcp-standalone /caminho/do/seu/projeto/markdown-vault-mcp
 
 # 2. Instale e compile
-cd /caminho/do/seu/projeto/obsidian-mcp
+cd /caminho/do/seu/projeto/markdown-vault-mcp
 npm install
 npm run build
 
@@ -44,10 +44,10 @@ Pronto. O servidor detecta automaticamente a pasta `docs/` na raiz do seu projet
 
 ```bash
 # 1. Copy this folder to your project
-cp -r obsidian-mcp-standalone /path/to/your/project/obsidian-mcp
+cp -r markdown-vault-mcp-standalone /path/to/your/project/markdown-vault-mcp
 
 # 2. Install & build
-cd /path/to/your/project/obsidian-mcp
+cd /path/to/your/project/markdown-vault-mcp
 npm install
 npm run build
 
@@ -74,16 +74,16 @@ That's it. The server auto-detects `docs/` in your project root.
 | `list_tags` | Lista tags de frontmatter e tags inline, com contagem e arquivos opcionais |
 | `manage_tags` | Lista, adiciona ou remove tags em frontmatter, inline ou ambos |
 | `get_periodic_note` | Retorna o nome do arquivo para nota periódica (diária, semanal, etc.) |
-| `obsidian_get_backlinks` | Encontra arquivos Markdown que referenciam uma nota |
-| `obsidian_impact_analysis` | Analisa riscos antes de mover, renomear ou deletar uma nota |
-| `obsidian_generate_index` | Gera, simula ou atualiza um índice Markdown do vault |
-| `obsidian_diagnose_docs` | Diagnostica links quebrados, anchors quebrados, órfãos, títulos e frontmatter |
-| `obsidian_extract_tasks` | Extrai tarefas `TODO`, `FIXME`, `@todo` e checkboxes |
-| `obsidian_build_context_pack` | Monta um pacote de contexto otimizado para agentes de IA |
-| `obsidian_find_relevant_notes` | Busca notas relevantes com ranking heurístico |
-| `obsidian_safe_rename_note` | Renomeia nota atualizando wikilinks e links Markdown |
-| `obsidian_lint_markdown_vault` | Linta o vault com checks voltados para IA e Obsidian, com fix opcional e dry-run |
-| `obsidian_generate_agent_briefing` | Gera um briefing curto para uma tarefa de agente |
+| `markdown_vault_get_backlinks` | Encontra arquivos Markdown que referenciam uma nota |
+| `markdown_vault_impact_analysis` | Analisa riscos antes de mover, renomear ou deletar uma nota |
+| `markdown_vault_generate_index` | Gera, simula ou atualiza um índice Markdown do vault |
+| `markdown_vault_diagnose_docs` | Diagnostica links quebrados, anchors quebrados, órfãos, títulos e frontmatter |
+| `markdown_vault_extract_tasks` | Extrai tarefas `TODO`, `FIXME`, `@todo` e checkboxes |
+| `markdown_vault_build_context_pack` | Monta um pacote de contexto otimizado para agentes de IA |
+| `markdown_vault_find_relevant_notes` | Busca notas relevantes com ranking heurístico |
+| `markdown_vault_safe_rename_note` | Renomeia nota atualizando wikilinks e links Markdown |
+| `markdown_vault_lint` | Linta o vault com checks voltados para IA e documentação Markdown, com fix opcional e dry-run |
+| `markdown_vault_generate_agent_briefing` | Gera um briefing curto para uma tarefa de agente |
 
 ## 🇬🇧 Tools
 
@@ -100,24 +100,24 @@ That's it. The server auto-detects `docs/` in your project root.
 | `list_tags` | List frontmatter and inline tags, with counts and optional files |
 | `manage_tags` | List, add, or remove tags in frontmatter, inline text, or both |
 | `get_periodic_note` | Get filename for daily/weekly/monthly note |
-| `obsidian_get_backlinks` | Find markdown files that reference a target note |
-| `obsidian_impact_analysis` | Analyze risk before moving, renaming, or deleting a note |
-| `obsidian_generate_index` | Generate, preview, or update a markdown vault index |
-| `obsidian_diagnose_docs` | Diagnose broken links, broken anchors, orphans, titles, and frontmatter |
-| `obsidian_extract_tasks` | Extract `TODO`, `FIXME`, `@todo`, and checkbox tasks |
-| `obsidian_build_context_pack` | Build an optimized context pack for AI agents |
-| `obsidian_find_relevant_notes` | Find relevant notes with heuristic ranking |
-| `obsidian_safe_rename_note` | Rename a note and update wikilinks/Markdown links |
-| `obsidian_lint_markdown_vault` | Lint the vault for AI and Obsidian usage, with optional fix and dry-run |
-| `obsidian_generate_agent_briefing` | Generate a short briefing for an agent task |
+| `markdown_vault_get_backlinks` | Find markdown files that reference a target note |
+| `markdown_vault_impact_analysis` | Analyze risk before moving, renaming, or deleting a note |
+| `markdown_vault_generate_index` | Generate, preview, or update a markdown vault index |
+| `markdown_vault_diagnose_docs` | Diagnose broken links, broken anchors, orphans, titles, and frontmatter |
+| `markdown_vault_extract_tasks` | Extract `TODO`, `FIXME`, `@todo`, and checkbox tasks |
+| `markdown_vault_build_context_pack` | Build an optimized context pack for AI agents |
+| `markdown_vault_find_relevant_notes` | Find relevant notes with heuristic ranking |
+| `markdown_vault_safe_rename_note` | Rename a note and update wikilinks/Markdown links |
+| `markdown_vault_lint` | Lint the vault for AI and Markdown documentation usage, with optional fix and dry-run |
+| `markdown_vault_generate_agent_briefing` | Generate a short briefing for an agent task |
 
 ## 🇧🇷🇬🇧 Advanced agent-oriented tools
 
-Estas ferramentas foram pensadas para agentes que precisam entender, reorganizar e usar documentação Markdown sem carregar o vault inteiro no contexto. Elas funcionam direto no filesystem, com Obsidian fechado, sem plugin REST API, sem porta HTTP e sem Docker.
+Estas ferramentas foram pensadas para agentes que precisam entender, reorganizar e usar documentação Markdown sem carregar o vault inteiro no contexto. Elas funcionam direto no filesystem, sem app externo aberto, sem plugin REST API, sem porta HTTP e sem Docker.
 
-These tools are built for agents that need to understand, reorganize, and use markdown docs without loading the whole vault into context. They work directly on the filesystem, with Obsidian closed, no REST API plugin, no HTTP port, and no Docker.
+These tools are built for agents that need to understand, reorganize, and use markdown docs without loading the whole vault into context. They work directly on the filesystem, with no external app open, no REST API plugin, no HTTP port, and no Docker.
 
-### `obsidian_get_backlinks`
+### `markdown_vault_get_backlinks`
 
 ```json
 {
@@ -135,7 +135,7 @@ These tools are built for agents that need to understand, reorganize, and use ma
 }
 ```
 
-### `obsidian_impact_analysis`
+### `markdown_vault_impact_analysis`
 
 ```json
 {
@@ -156,7 +156,7 @@ These tools are built for agents that need to understand, reorganize, and use ma
 }
 ```
 
-### `obsidian_generate_index`
+### `markdown_vault_generate_index`
 
 ```json
 {
@@ -211,7 +211,7 @@ Dry-run returns a preview and does not write the target file:
 }
 ```
 
-### `obsidian_diagnose_docs`
+### `markdown_vault_diagnose_docs`
 
 ```json
 {
@@ -251,7 +251,7 @@ Dry-run returns a preview and does not write the target file:
 }
 ```
 
-### `obsidian_extract_tasks`
+### `markdown_vault_extract_tasks`
 
 ```json
 {
@@ -284,7 +284,7 @@ Dry-run returns a preview and does not write the target file:
 }
 ```
 
-### `obsidian_build_context_pack`
+### `markdown_vault_build_context_pack`
 
 ```json
 {
@@ -307,7 +307,7 @@ Dry-run returns a preview and does not write the target file:
 
 For generic tasks, the context pack gives initial priority to central files when they exist: `AGENTS.md`, `README.md`, `docs/index.md`, and `index.md` files inside the scanned path. It still respects `maxTokens` and does not return the whole vault.
 
-### `obsidian_find_relevant_notes`
+### `markdown_vault_find_relevant_notes`
 
 ```json
 {
@@ -332,7 +332,7 @@ For generic tasks, the context pack gives initial priority to central files when
 }
 ```
 
-### `obsidian_safe_rename_note`
+### `markdown_vault_safe_rename_note`
 
 ```json
 {
@@ -352,7 +352,7 @@ For generic tasks, the context pack gives initial priority to central files when
 }
 ```
 
-### `obsidian_lint_markdown_vault`
+### `markdown_vault_lint`
 
 ```json
 {
@@ -375,7 +375,7 @@ For generic tasks, the context pack gives initial priority to central files when
 
 When `fix` is `true`, only safe formatting fixes are applied: trailing spaces are removed and a final newline is ensured. When `fix` and `dryRun` are both `true`, files are not changed and the output includes `dryRun`, `summary.wouldFix`, and `fixes`.
 
-### `obsidian_generate_agent_briefing`
+### `markdown_vault_generate_agent_briefing`
 
 ```json
 {
@@ -400,34 +400,34 @@ When `fix` is `true`, only safe formatting fixes are applied: trailing spaces ar
 ## 🇧🇷 Boas práticas para agentes com `AGENTS.md` + `docs/index.md`
 
 - Coloque `AGENTS.md` na raiz do vault/projeto com regras operacionais: comandos, padrões de código, limites de segurança e decisões que o agente deve respeitar.
-- Mantenha `docs/index.md` como mapa principal da documentação. A tool `obsidian_generate_index` pode criar ou atualizar esse arquivo.
-- Antes de uma tarefa grande, chame `obsidian_generate_agent_briefing` para obter a ordem de leitura recomendada.
-- Para montar contexto sem estourar a janela do modelo, prefira `obsidian_build_context_pack` em vez de pedir todos os arquivos.
-- Antes de renomear ou deletar uma nota, use `obsidian_impact_analysis` e depois `obsidian_safe_rename_note` com `dryRun: true`.
+- Mantenha `docs/index.md` como mapa principal da documentação. A tool `markdown_vault_generate_index` pode criar ou atualizar esse arquivo.
+- Antes de uma tarefa grande, chame `markdown_vault_generate_agent_briefing` para obter a ordem de leitura recomendada.
+- Para montar contexto sem estourar a janela do modelo, prefira `markdown_vault_build_context_pack` em vez de pedir todos os arquivos.
+- Antes de renomear ou deletar uma nota, use `markdown_vault_impact_analysis` e depois `markdown_vault_safe_rename_note` com `dryRun: true`.
 
 ## 🇬🇧 Best practices for agents with `AGENTS.md` + `docs/index.md`
 
 - Put `AGENTS.md` at the vault/project root with operating rules: commands, coding standards, safety limits, and decisions the agent must follow.
-- Keep `docs/index.md` as the main documentation map. `obsidian_generate_index` can create or refresh it.
-- Before a larger task, call `obsidian_generate_agent_briefing` to get the recommended reading order.
-- To fit model context windows, prefer `obsidian_build_context_pack` instead of loading every file.
-- Before renaming or deleting a note, use `obsidian_impact_analysis`, then `obsidian_safe_rename_note` with `dryRun: true`.
+- Keep `docs/index.md` as the main documentation map. `markdown_vault_generate_index` can create or refresh it.
+- Before a larger task, call `markdown_vault_generate_agent_briefing` to get the recommended reading order.
+- To fit model context windows, prefer `markdown_vault_build_context_pack` instead of loading every file.
+- Before renaming or deleting a note, use `markdown_vault_impact_analysis`, then `markdown_vault_safe_rename_note` with `dryRun: true`.
 
 ## 🇧🇷 Recursos MCP
 
 | Resource URI | O que expõe |
 |--------------|-------------|
-| `obsidian://vault/{path}` | Nota em JSON com conteúdo, frontmatter, tags, links, headings e metadados |
-| `obsidian://tags` | Todas as tags encontradas no vault, com contagem e arquivos |
-| `obsidian://status` | Status standalone do servidor, transporte, vault e contagem de notas |
+| `markdown-vault://vault/{path}` | Nota em JSON com conteúdo, frontmatter, tags, links, headings e metadados |
+| `markdown-vault://tags` | Todas as tags encontradas no vault, com contagem e arquivos |
+| `markdown-vault://status` | Status standalone do servidor, transporte, vault e contagem de notas |
 
 ## 🇬🇧 MCP Resources
 
 | Resource URI | What it exposes |
 |--------------|-----------------|
-| `obsidian://vault/{path}` | Note JSON with content, frontmatter, tags, links, headings, and metadata |
-| `obsidian://tags` | All vault tags with counts and files |
-| `obsidian://status` | Standalone server status, transport, vault, and note count |
+| `markdown-vault://vault/{path}` | Note JSON with content, frontmatter, tags, links, headings, and metadata |
+| `markdown-vault://tags` | All vault tags with counts and files |
+| `markdown-vault://status` | Standalone server status, transport, vault, and note count |
 
 ## 🇧🇷 Segurança para agentes
 
@@ -436,8 +436,8 @@ When `fix` is `true`, only safe formatting fixes are applied: trailing spaces ar
 - Symlinks que apontam para fora do vault são rejeitados nas operações avançadas e nos paths resolvidos pelo servidor.
 - `write_file` não sobrescreve arquivo existente sem `overwrite: true`.
 - Operações de escrita podem usar `expectedSha256` para evitar sobrescrever conteúdo que mudou desde a última leitura.
-- `obsidian_generate_index` e `obsidian_lint_markdown_vault` suportam `dryRun` para simular operações de escrita.
-- Frontmatter é suportado para YAML simples comum em Obsidian; objetos YAML complexos podem ser reserializados de forma simplificada.
+- `markdown_vault_generate_index` e `markdown_vault_lint` suportam `dryRun` para simular operações de escrita.
+- Frontmatter é suportado para YAML simples comum em documentação Markdown; objetos YAML complexos podem ser reserializados de forma simplificada.
 
 ## 🇬🇧 Agent Safety
 
@@ -446,8 +446,8 @@ When `fix` is `true`, only safe formatting fixes are applied: trailing spaces ar
 - Symlinks that point outside the vault are rejected by advanced operations and resolved server paths.
 - `write_file` does not overwrite existing files unless `overwrite: true` is passed.
 - Write operations can use `expectedSha256` to avoid replacing content that changed after the last read.
-- `obsidian_generate_index` and `obsidian_lint_markdown_vault` support `dryRun` to preview write operations.
-- Frontmatter supports common simple Obsidian YAML; complex YAML objects may be serialized in a simplified form.
+- `markdown_vault_generate_index` and `markdown_vault_lint` support `dryRun` to preview write operations.
+- Frontmatter supports common simple Markdown frontmatter YAML; complex YAML objects may be serialized in a simplified form.
 
 ---
 
@@ -455,26 +455,26 @@ When `fix` is `true`, only safe formatting fixes are applied: trailing spaces ar
 
 Por padrão o servidor define o vault nesta ordem:
 
-1. Variável de ambiente `OBSIDIAN_VAULT_PATH`
-2. Pasta `docs/` relativa ao próprio script (`obsidian-mcp/dist/../../docs`)
+1. Variável de ambiente `MARKDOWN_VAULT_PATH`
+2. Pasta `docs/` relativa ao próprio script (`markdown-vault-mcp/dist/../../docs`)
 3. Pasta `docs/` relativa ao diretório atual (`./docs`)
 
 ```bash
 # Sobrescrever o caminho do vault
-OBSIDIAN_VAULT_PATH=/outro/vault node dist/index.js
+MARKDOWN_VAULT_PATH=/outro/vault node dist/index.js
 ```
 
 ## 🇬🇧 Configuration
 
 By default the server chooses the vault in this order:
 
-1. `OBSIDIAN_VAULT_PATH` environment variable
-2. `docs/` relative to the server script location (`obsidian-mcp/dist/../../docs`)
+1. `MARKDOWN_VAULT_PATH` environment variable
+2. `docs/` relative to the server script location (`markdown-vault-mcp/dist/../../docs`)
 3. `docs/` relative to the current working directory (`./docs`)
 
 ```bash
 # Override vault path
-OBSIDIAN_VAULT_PATH=/some/other/vault node dist/index.js
+MARKDOWN_VAULT_PATH=/some/other/vault node dist/index.js
 ```
 
 ---
@@ -490,9 +490,9 @@ OBSIDIAN_VAULT_PATH=/some/other/vault node dist/index.js
 {
   "$schema": "https://opencode.ai/config.json",
   "mcp": {
-    "obsidian-vault": {
+    "markdown-vault": {
       "type": "local",
-      "command": ["node", "obsidian-mcp/dist/index.js"],
+      "command": ["node", "markdown-vault-mcp/dist/index.js"],
       "enabled": true
     }
   }
@@ -507,10 +507,10 @@ OBSIDIAN_VAULT_PATH=/some/other/vault node dist/index.js
 ```json
 {
   "mcpServers": {
-    "obsidian-vault": {
+    "markdown-vault": {
       "type": "stdio",
       "command": "node",
-      "args": ["obsidian-mcp/dist/index.js"]
+      "args": ["markdown-vault-mcp/dist/index.js"]
     }
   }
 }
@@ -519,7 +519,7 @@ OBSIDIAN_VAULT_PATH=/some/other/vault node dist/index.js
 Ou adicione pelo CLI:
 
 ```bash
-claude mcp add --transport stdio obsidian-vault -- node obsidian-mcp/dist/index.js
+claude mcp add --transport stdio markdown-vault -- node markdown-vault-mcp/dist/index.js
 ```
 
 ### VS Code
@@ -530,10 +530,10 @@ claude mcp add --transport stdio obsidian-vault -- node obsidian-mcp/dist/index.
 ```json
 {
   "servers": {
-    "obsidian-vault": {
+    "markdown-vault": {
       "type": "stdio",
       "command": "node",
-      "args": ["obsidian-mcp/dist/index.js"]
+      "args": ["markdown-vault-mcp/dist/index.js"]
     }
   }
 }
@@ -545,10 +545,10 @@ claude mcp add --transport stdio obsidian-vault -- node obsidian-mcp/dist/index.
 **🇬🇧** Add a new MCP server:
 
 ```
-Name / Nome:       Obsidian Vault
+Name / Nome:       Markdown Vault
 Command / Comando: node
-Arguments:         [/caminho/completo/obsidian-mcp/dist/index.js]
-                  [/full/path/to/obsidian-mcp/dist/index.js]
+Arguments:         [/caminho/completo/markdown-vault-mcp/dist/index.js]
+                  [/full/path/to/markdown-vault-mcp/dist/index.js]
 ```
 
 ---
@@ -556,7 +556,7 @@ Arguments:         [/caminho/completo/obsidian-mcp/dist/index.js]
 ## 🇧🇷 Estrutura do Projeto
 
 ```
-obsidian-mcp/
+markdown-vault-mcp/
 ├── src/index.ts              # Registro MCP, tools legadas e resources
 ├── src/core/advanced.ts      # Tools avançadas para agentes e helpers Markdown
 ├── src/core/advanced-helpers.ts
@@ -571,7 +571,7 @@ obsidian-mcp/
 ## 🇬🇧 Project Structure
 
 ```
-obsidian-mcp/
+markdown-vault-mcp/
 ├── src/index.ts              # MCP registration, legacy tools, and resources
 ├── src/core/advanced.ts      # Advanced agent tools and markdown helpers
 ├── src/core/advanced-helpers.ts
@@ -603,22 +603,22 @@ It uses **only Node.js** and reads `.md`/`.markdown` files directly from the fil
 
 ---
 
-## 🇧🇷 Por que não usar o plugin do Obsidian diretamente?
+## 🇧🇷 Por que não usar o plugin REST API diretamente?
 
-O plugin `obsidian-local-rest-api` do Obsidian MCP original exige o Obsidian aberto e serve apenas um vault por vez. Este server standalone melhora essa abordagem:
+A abordagem com plugin REST API local exige um aplicativo ou serviço externo aberto e costuma servir apenas um vault por vez. Este server standalone melhora essa abordagem:
 
-- **Funciona sem o Obsidian aberto** — não depende do aplicativo
+- **Funciona sem app externo aberto** — não depende de aplicativo de notas
 - **Zero configuração** por projeto
 - **Portátil** — copie a pasta, instale, pronto
 - **Sem chaves de API, sem tokens, sem portas**
 - **Previsível** — lê arquivos direto, sem cache obsoleto
 - **Focado em agentes de desenvolvimento** — tools otimizadas para contexto de IA e documentação técnica
 
-## 🇬🇧 Why Not Just Use the Obsidian Plugin?
+## 🇬🇧 Why Not Just Use the REST API Plugin?
 
-The original Obsidian MCP's `obsidian-local-rest-api` plugin requires Obsidian to be open and can only serve one vault at a time. This standalone server improves on that approach:
+The local REST API plugin approach requires an external app or service to be open and usually serves only one vault at a time. This standalone server improves on that approach:
 
-- **Works without Obsidian running** — no app dependency
+- **Works without an external app running** — no notes app dependency
 - **Zero configuration** per project
 - **Portable** — copy the folder, install, done
 - **No API keys, no tokens, no ports**

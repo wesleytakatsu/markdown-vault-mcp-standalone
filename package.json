@@ -3,7 +3,7 @@
   "version": "1.2.0",
   "private": true,
   "author": "Wesley Sieiro Takatsu de Araujo",
-  "description": "MCP server for Markdown vaults — inspired by Obsidian MCP, enhanced for development agent documentation",
+  "description": "MCP server for Markdown vaults and development agent documentation",
   "type": "module",
   "scripts": {
     "build": "tsc",

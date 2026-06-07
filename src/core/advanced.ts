@@ -36,7 +36,7 @@ import type {
 
 export const advancedToolDefinitions: ToolDefinition[] = [
   {
-    name: "obsidian_get_backlinks",
+    name: "markdown_vault_get_backlinks",
     description: "Find markdown files that reference a target note",
     inputSchema: {
       type: "object",
@@ -51,7 +51,7 @@ export const advancedToolDefinitions: ToolDefinition[] = [
     },
   },
   {
-    name: "obsidian_impact_analysis",
+    name: "markdown_vault_impact_analysis",
     description: "Analyze a note before moving, renaming, or deleting it",
     inputSchema: {
       type: "object",
@@ -62,7 +62,7 @@ export const advancedToolDefinitions: ToolDefinition[] = [
     },
   },
   {
-    name: "obsidian_generate_index",
+    name: "markdown_vault_generate_index",
     description: "Generate or update a markdown index for a vault path",
     inputSchema: {
       type: "object",
@@ -78,7 +78,7 @@ export const advancedToolDefinitions: ToolDefinition[] = [
     },
   },
   {
-    name: "obsidian_diagnose_docs",
+    name: "markdown_vault_diagnose_docs",
     description: "Run documentation diagnostics for agent-friendly markdown",
     inputSchema: {
       type: "object",
@@ -96,7 +96,7 @@ export const advancedToolDefinitions: ToolDefinition[] = [
     },
   },
   {
-    name: "obsidian_extract_tasks",
+    name: "markdown_vault_extract_tasks",
     description: "Extract open TODO/FIXME/task checkbox items from markdown notes",
     inputSchema: {
       type: "object",
@@ -109,7 +109,7 @@ export const advancedToolDefinitions: ToolDefinition[] = [
     },
   },
   {
-    name: "obsidian_build_context_pack",
+    name: "markdown_vault_build_context_pack",
     description: "Build a token-bounded markdown context pack for an AI agent task",
     inputSchema: {
       type: "object",
@@ -125,7 +125,7 @@ export const advancedToolDefinitions: ToolDefinition[] = [
     },
   },
   {
-    name: "obsidian_find_relevant_notes",
+    name: "markdown_vault_find_relevant_notes",
     description: "Rank notes by agent-oriented heuristic relevance",
     inputSchema: {
       type: "object",
@@ -139,7 +139,7 @@ export const advancedToolDefinitions: ToolDefinition[] = [
     },
   },
   {
-    name: "obsidian_safe_rename_note",
+    name: "markdown_vault_safe_rename_note",
     description: "Rename a note and optionally update internal markdown/wiki links",
     inputSchema: {
       type: "object",
@@ -153,7 +153,7 @@ export const advancedToolDefinitions: ToolDefinition[] = [
     },
   },
   {
-    name: "obsidian_lint_markdown_vault",
+    name: "markdown_vault_lint",
     description: "Lint a markdown vault for AI-agent documentation quality",
     inputSchema: {
       type: "object",
@@ -166,7 +166,7 @@ export const advancedToolDefinitions: ToolDefinition[] = [
     },
   },
   {
-    name: "obsidian_generate_agent_briefing",
+    name: "markdown_vault_generate_agent_briefing",
     description: "Generate a concise task briefing for an AI agent",
     inputSchema: {
       type: "object",
@@ -190,25 +190,25 @@ export async function callAdvancedTool(
   vaultRoot: string,
 ): Promise<unknown> {
   switch (name) {
-    case "obsidian_get_backlinks":
+    case "markdown_vault_get_backlinks":
       return getBacklinks(vaultRoot, args);
-    case "obsidian_impact_analysis":
+    case "markdown_vault_impact_analysis":
       return impactAnalysis(vaultRoot, args);
-    case "obsidian_generate_index":
+    case "markdown_vault_generate_index":
       return generateIndex(vaultRoot, args);
-    case "obsidian_diagnose_docs":
+    case "markdown_vault_diagnose_docs":
       return diagnoseDocs(vaultRoot, args);
-    case "obsidian_extract_tasks":
+    case "markdown_vault_extract_tasks":
       return extractTasks(vaultRoot, args);
-    case "obsidian_build_context_pack":
+    case "markdown_vault_build_context_pack":
       return buildContextPack(vaultRoot, args);
-    case "obsidian_find_relevant_notes":
+    case "markdown_vault_find_relevant_notes":
       return findRelevantNotes(vaultRoot, args);
-    case "obsidian_safe_rename_note":
+    case "markdown_vault_safe_rename_note":
       return safeRenameNote(vaultRoot, args);
-    case "obsidian_lint_markdown_vault":
+    case "markdown_vault_lint":
       return lintMarkdownVault(vaultRoot, args);
-    case "obsidian_generate_agent_briefing":
+    case "markdown_vault_generate_agent_briefing":
       return generateAgentBriefing(vaultRoot, args);
     default:
       throw new Error(`Unknown advanced tool: ${name}`);

@@ -4,7 +4,6 @@ export const MARKDOWN_EXTENSIONS = new Set([".md", ".markdown"]);
 
 export const IGNORED_DIRS = new Set([
   ".git",
-  ".obsidian",
   "build",
   "coverage",
   "dist",

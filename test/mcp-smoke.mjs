@@ -226,7 +226,7 @@ try {
     "utf-8",
   );
 
-  process.env.OBSIDIAN_VAULT_PATH = vault;
+  process.env.MARKDOWN_VAULT_PATH = vault;
   const { server } = await import("../dist/index.js");
   const [client, serverTransport] = InMemoryTransport.createLinkedPair();
   clientTransport = client;
@@ -257,16 +257,16 @@ try {
     "replace_in_file",
     "search",
     "write_file",
-    "obsidian_build_context_pack",
-    "obsidian_diagnose_docs",
-    "obsidian_extract_tasks",
-    "obsidian_find_relevant_notes",
-    "obsidian_generate_agent_briefing",
-    "obsidian_generate_index",
-    "obsidian_get_backlinks",
-    "obsidian_impact_analysis",
-    "obsidian_lint_markdown_vault",
-    "obsidian_safe_rename_note",
+    "markdown_vault_build_context_pack",
+    "markdown_vault_diagnose_docs",
+    "markdown_vault_extract_tasks",
+    "markdown_vault_find_relevant_notes",
+    "markdown_vault_generate_agent_briefing",
+    "markdown_vault_generate_index",
+    "markdown_vault_get_backlinks",
+    "markdown_vault_impact_analysis",
+    "markdown_vault_lint",
+    "markdown_vault_safe_rename_note",
   ]) {
     assert.ok(toolNames.includes(expected), `Missing tool ${expected}`);
   }
@@ -409,26 +409,26 @@ try {
   assert.ok(vaultTags.tags.some((entry) => entry.tag === "alpha"));
 
   const templates = await ok("resources/templates/list");
-  assert.equal(templates.resourceTemplates[0].uriTemplate, "obsidian://vault/{path}");
+  assert.equal(templates.resourceTemplates[0].uriTemplate, "markdown-vault://vault/{path}");
 
   const resources = await ok("resources/list");
   const resourceUris = resources.resources.map((entry) => entry.uri);
-  assert.ok(resourceUris.includes("obsidian://status"));
-  assert.ok(resourceUris.includes("obsidian://tags"));
-  assert.ok(resourceUris.includes("obsidian://vault/notes/example.md"));
+  assert.ok(resourceUris.includes("markdown-vault://status"));
+  assert.ok(resourceUris.includes("markdown-vault://tags"));
+  assert.ok(resourceUris.includes("markdown-vault://vault/notes/example.md"));
 
-  const tagResource = await ok("resources/read", { uri: "obsidian://tags" });
+  const tagResource = await ok("resources/read", { uri: "markdown-vault://tags" });
   const tagResourceJson = JSON.parse(tagResource.contents[0].text);
   assert.ok(tagResourceJson.tags.some((entry) => entry.tag === "agent"));
 
   const noteResource = await ok("resources/read", {
-    uri: "obsidian://vault/notes/example.md",
+    uri: "markdown-vault://vault/notes/example.md",
   });
   const noteResourceJson = JSON.parse(noteResource.contents[0].text);
   assert.equal(noteResourceJson.metadata.path, "notes/example.md");
   assert.ok(noteResourceJson.content.includes("new token"));
 
-  const statusResource = await ok("resources/read", { uri: "obsidian://status" });
+  const statusResource = await ok("resources/read", { uri: "markdown-vault://status" });
   const statusJson = JSON.parse(statusResource.contents[0].text);
   assert.equal(statusJson.mode, "filesystem");
   assert.equal(statusJson.transport, "stdio");
@@ -441,7 +441,7 @@ try {
     /Path traversal denied/,
   );
   await toolFails(
-    "obsidian_get_backlinks",
+    "markdown_vault_get_backlinks",
     {
       path: "../outside.md",
     },
@@ -456,7 +456,7 @@ try {
   );
 
   const backlinks = parseToolJson(
-    await tool("obsidian_get_backlinks", {
+    await tool("markdown_vault_get_backlinks", {
       includeContext: true,
       path: "docs/backend/auth",
     }),
@@ -467,7 +467,7 @@ try {
   assert.ok(backlinks.backlinks.some((entry) => entry.path === "AGENTS.md"));
 
   const impact = parseToolJson(
-    await tool("obsidian_impact_analysis", {
+    await tool("markdown_vault_impact_analysis", {
       path: "docs/backend/auth.md",
     }),
   );
@@ -480,7 +480,7 @@ try {
   assert.ok(impact.risks.length > 0);
 
   const generatedIndexDryRun = parseToolJson(
-    await tool("obsidian_generate_index", {
+    await tool("markdown_vault_generate_index", {
       dryRun: true,
       includeDescriptions: true,
       mode: "hierarchical",
@@ -501,7 +501,7 @@ try {
   );
 
   const generatedIndex = parseToolJson(
-    await tool("obsidian_generate_index", {
+    await tool("markdown_vault_generate_index", {
       includeDescriptions: true,
       mode: "hierarchical",
       overwrite: false,
@@ -522,7 +522,7 @@ try {
     /\[\[backend\/auth\]\] — Autenticação — Como funciona autenticacao JWT no backend/,
   );
   await toolFails(
-    "obsidian_generate_index",
+    "markdown_vault_generate_index",
     {
       path: "docs",
       target: "docs/generated-index.md",
@@ -531,7 +531,7 @@ try {
   );
 
   const diagnostics = parseToolJson(
-    await tool("obsidian_diagnose_docs", {
+    await tool("markdown_vault_diagnose_docs", {
       checks: [
         "broken_links",
         "broken_anchors",
@@ -554,7 +554,7 @@ try {
   assert.ok(diagnostics.issues.some((issue) => issue.type === "large_files"));
 
   const tasks = parseToolJson(
-    await tool("obsidian_extract_tasks", {
+    await tool("markdown_vault_extract_tasks", {
       groupBy: "file",
       includeDone: false,
       path: "docs",
@@ -566,7 +566,7 @@ try {
   assert.ok(!tasks.tasks.some((task) => task.text.includes("Completed setup note")));
 
   const contextPack = parseToolJson(
-    await tool("obsidian_build_context_pack", {
+    await tool("markdown_vault_build_context_pack", {
       exclude: ["docs/old/**"],
       include: ["docs/**/*.md", "AGENTS.md"],
       maxTokens: 12000,
@@ -581,7 +581,7 @@ try {
   assert.match(contextPack.content, /# Context Pack:/);
 
   const genericContextPack = parseToolJson(
-    await tool("obsidian_build_context_pack", {
+    await tool("markdown_vault_build_context_pack", {
       maxTokens: 4000,
       mode: "agent",
       path: "docs",
@@ -594,7 +594,7 @@ try {
   assert.ok(genericContextPack.filesUsed.includes("docs/index.md"));
 
   const relevant = parseToolJson(
-    await tool("obsidian_find_relevant_notes", {
+    await tool("markdown_vault_find_relevant_notes", {
       limit: 10,
       path: "docs",
       query: "autenticação JWT no backend",
@@ -610,7 +610,7 @@ try {
   assert.ok(authResult.matchedBy.includes("title"));
 
   const renameDryRun = parseToolJson(
-    await tool("obsidian_safe_rename_note", {
+    await tool("markdown_vault_safe_rename_note", {
       dryRun: true,
       from: "docs/backend/auth.md",
       to: "docs/backend/autenticacao.md",
@@ -628,7 +628,7 @@ try {
   );
 
   const lintDryRun = parseToolJson(
-    await tool("obsidian_lint_markdown_vault", {
+    await tool("markdown_vault_lint", {
       dryRun: true,
       fix: true,
       path: "docs",
@@ -647,7 +647,7 @@ try {
   assert.match(routesAfterLintDryRun, /Auth\]\]\.  \n/);
 
   const lint = parseToolJson(
-    await tool("obsidian_lint_markdown_vault", {
+    await tool("markdown_vault_lint", {
       fix: false,
       path: "docs",
     }),
@@ -659,7 +659,7 @@ try {
   assert.ok(lint.issues.some((issue) => issue.type === "broken_anchors"));
 
   const briefing = parseToolJson(
-    await tool("obsidian_generate_agent_briefing", {
+    await tool("markdown_vault_generate_agent_briefing", {
       maxTokens: 6000,
       path: "docs",
       task: "implementar autenticação JWT no backend",
