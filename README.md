@@ -667,12 +667,26 @@ Arguments:         [/caminho/completo/markdown-vault-mcp/dist/index.js]
 
 ```
 markdown-vault-mcp/
-├── src/index.ts              # Registro MCP, tools legadas e resources
-├── src/core/advanced.ts      # Tools avançadas para agentes e helpers Markdown
-├── src/core/advanced-helpers.ts
-├── src/core/advanced-types.ts
-├── test/mcp-smoke.mjs        # Teste MCP de ferramentas e resources
-├── dist/index.js             # Compilado (gerado automaticamente)
+├── src/index.ts                  # Bootstrap: detecta o vault e conecta o transporte stdio
+├── src/server.ts                 # Composição (DI): monta serviços, tools e resources
+├── src/config/                   # Constantes e configuração do servidor
+├── src/types/                    # Tipos compartilhados (markdown, vault, tools, erros)
+├── src/errors/                   # Erros customizados do domínio
+├── src/utils/                    # Funções utilitárias puras (string, array, parsing, validação)
+├── src/domain/
+│   ├── security/                 # PathResolver — sandboxing e prevenção de path traversal
+│   ├── markdown/                 # Parser, frontmatter, headings, links e formatter
+│   ├── tags/                     # TagService — normalização e manipulação de tags
+│   ├── note/                     # NoteService — operações de leitura/escrita de notas
+│   └── vault/                    # Vault e VaultAdvanced — coordenação de alto nível
+├── src/tools/
+│   ├── basic/                    # Uma classe por tool básica (list_files, read_file, ...)
+│   ├── advanced/                 # Uma classe por tool avançada (audit, lint, backlinks, ...)
+│   ├── tool.interface.ts         # Contrato ITool
+│   └── tool-registry.ts          # Registro/factory de tools MCP
+├── src/resources/                # Handlers dos resources MCP (vault, tags, status)
+├── test/mcp-smoke.mjs            # Teste MCP de ferramentas e resources
+├── dist/index.js                 # Compilado (gerado automaticamente)
 ├── package.json
 ├── tsconfig.json
 └── README.md
@@ -682,12 +696,26 @@ markdown-vault-mcp/
 
 ```
 markdown-vault-mcp/
-├── src/index.ts              # MCP registration, legacy tools, and resources
-├── src/core/advanced.ts      # Advanced agent tools and markdown helpers
-├── src/core/advanced-helpers.ts
-├── src/core/advanced-types.ts
-├── test/mcp-smoke.mjs        # MCP smoke test for tools and resources
-├── dist/index.js             # Compiled output (generated)
+├── src/index.ts                  # Bootstrap: detects the vault and connects the stdio transport
+├── src/server.ts                 # Composition (DI): wires services, tools, and resources
+├── src/config/                   # Constants and server configuration
+├── src/types/                    # Shared types (markdown, vault, tools, errors)
+├── src/errors/                   # Domain custom errors
+├── src/utils/                    # Pure utility functions (string, array, parsing, validation)
+├── src/domain/
+│   ├── security/                 # PathResolver — sandboxing and path traversal prevention
+│   ├── markdown/                 # Parser, frontmatter, headings, links, and formatter
+│   ├── tags/                     # TagService — tag normalization and manipulation
+│   ├── note/                     # NoteService — note read/write operations
+│   └── vault/                    # Vault and VaultAdvanced — high-level coordination
+├── src/tools/
+│   ├── basic/                    # One class per basic tool (list_files, read_file, ...)
+│   ├── advanced/                 # One class per advanced tool (audit, lint, backlinks, ...)
+│   ├── tool.interface.ts         # ITool contract
+│   └── tool-registry.ts          # MCP tool registry/factory
+├── src/resources/                # MCP resource handlers (vault, tags, status)
+├── test/mcp-smoke.mjs            # MCP smoke test for tools and resources
+├── dist/index.js                 # Compiled output (generated)
 ├── package.json
 ├── tsconfig.json
 └── README.md

@@ -1,36 +1,9 @@
-export type JsonValue =
-  | string
-  | number
-  | boolean
-  | null
-  | JsonValue[]
-  | { [key: string]: JsonValue };
-
-export type Frontmatter = Record<string, JsonValue>;
-
-export type ToolDefinition = {
-  description: string;
-  inputSchema: Record<string, unknown>;
-  name: string;
-};
-
-export type Vault = {
-  realRoot: string;
-  root: string;
-};
+import type { Frontmatter } from "./frontmatter.js";
 
 export type Heading = {
   level: number;
   line: number;
   text: string;
-};
-
-export type FrontmatterParse = {
-  body: string;
-  frontmatter: Frontmatter;
-  hasFrontmatter: boolean;
-  rawFrontmatter: string;
-  yamlError?: string;
 };
 
 export type LinkMatch = {
