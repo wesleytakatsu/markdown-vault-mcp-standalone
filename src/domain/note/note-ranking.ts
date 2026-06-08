@@ -9,6 +9,144 @@ import { resolveLink } from "../markdown/link.service.js";
 import { stripMarkdownExtension, trimToChars, normalizeText } from "../../utils/string.utils.js";
 import { containsAnyToken, countTokenOccurrences, tokenize } from "../../utils/text-search.utils.js";
 import { MARKDOWN_EXTENSIONS } from "../../config/constants.js";
+import {
+  clampMaxFuzzyDistance,
+  isFuzzyEligible,
+  withinFuzzyDistance,
+} from "../../utils/fuzzy-match.utils.js";
+import {
+  expandWithSynonyms,
+  type ExpandedToken,
+  type SynonymDict,
+  type SynonymMode,
+} from "./synonym.service.js";
+
+export type RankOptions = {
+  fuzzy?: boolean;
+  maxFuzzyDistance?: number;
+  synonymMode?: SynonymMode;
+  projectSynonyms?: SynonymDict | null;
+};
+
+const DIRECT_FIELD_WEIGHTS = {
+  title: 8,
+  heading: 6,
+  tag: 5,
+  frontmatter: 4,
+  filename: 4,
+} as const;
+
+const SYNONYM_WEIGHT_RATIO = 0.6;
+const FUZZY_WEIGHT_RATIO = 0.5;
+
+function softWeight(directWeight: number, ratio: number): number {
+  return Math.max(1, Math.round(directWeight * ratio));
+}
+
+const SYNONYM_FIELD_WEIGHTS = {
+  title: softWeight(DIRECT_FIELD_WEIGHTS.title, SYNONYM_WEIGHT_RATIO),
+  heading: softWeight(DIRECT_FIELD_WEIGHTS.heading, SYNONYM_WEIGHT_RATIO),
+  tag: softWeight(DIRECT_FIELD_WEIGHTS.tag, SYNONYM_WEIGHT_RATIO),
+  frontmatter: softWeight(DIRECT_FIELD_WEIGHTS.frontmatter, SYNONYM_WEIGHT_RATIO),
+  filename: softWeight(DIRECT_FIELD_WEIGHTS.filename, SYNONYM_WEIGHT_RATIO),
+} as const;
+
+const FUZZY_FIELD_WEIGHTS = {
+  title: softWeight(DIRECT_FIELD_WEIGHTS.title, FUZZY_WEIGHT_RATIO),
+  filename: softWeight(DIRECT_FIELD_WEIGHTS.filename, FUZZY_WEIGHT_RATIO),
+} as const;
+
+// Limites aplicados em sequência sobre o conteúdo da nota: primeiro corta quantos
+// tokens únicos entram na comparação, depois quantas comparações fuzzy podem rodar,
+// e só por fim os caps de pontuação atuam sobre o resultado já obtido.
+const MAX_CONTENT_TOKENS_FOR_FUZZY = 300;
+const MAX_FUZZY_COMPARISONS_PER_NOTE = 2000;
+const MAX_CONTENT_SCORE_PER_SYNONYM_GROUP = 2;
+const MAX_CONTENT_FUZZY_SCORE = 2;
+const MAX_NON_DIRECT_CONTENT_SCORE = 4;
+
+type FuzzyQueryToken = { token: string; maxDistance: number };
+
+function fieldHasFuzzyMatch(fieldText: string, fuzzyQueryTokens: FuzzyQueryToken[]): boolean {
+  if (!fieldText || fuzzyQueryTokens.length === 0) return false;
+  const candidates = tokenize(fieldText);
+  if (candidates.length === 0) return false;
+  return fuzzyQueryTokens.some(({ token, maxDistance }) =>
+    candidates.some((candidate) => withinFuzzyDistance(token, candidate, maxDistance)),
+  );
+}
+
+type ContentMatchTally = {
+  matchedFuzzy: boolean;
+  matchedSynonym: boolean;
+  score: number;
+};
+
+function scoreNonDirectContentMatches(
+  body: string,
+  directTokens: string[],
+  synonymTokens: ExpandedToken[],
+  fuzzyQueryTokens: FuzzyQueryToken[],
+): ContentMatchTally {
+  const directSet = new Set(directTokens);
+  const synonymGroupByToken = new Map<string, string | undefined>();
+  for (const expanded of synonymTokens) {
+    if (!synonymGroupByToken.has(expanded.token)) {
+      synonymGroupByToken.set(expanded.token, expanded.group);
+    }
+  }
+
+  const contentTokens = tokenize(body).slice(0, MAX_CONTENT_TOKENS_FOR_FUZZY);
+  const groupMatchCounts = new Map<string, number>();
+  let fuzzyMatchCount = 0;
+  let comparisons = 0;
+  let comparisonBudgetExceeded = false;
+
+  for (const candidate of contentTokens) {
+    if (directSet.has(candidate)) continue;
+
+    if (synonymGroupByToken.has(candidate)) {
+      const group = synonymGroupByToken.get(candidate) ?? candidate;
+      groupMatchCounts.set(group, (groupMatchCounts.get(group) ?? 0) + 1);
+    }
+
+    if (fuzzyQueryTokens.length > 0 && !comparisonBudgetExceeded) {
+      let matched = false;
+      for (const { token, maxDistance } of fuzzyQueryTokens) {
+        comparisons += 1;
+        if (comparisons > MAX_FUZZY_COMPARISONS_PER_NOTE) {
+          comparisonBudgetExceeded = true;
+          break;
+        }
+        if (withinFuzzyDistance(token, candidate, maxDistance)) {
+          matched = true;
+          break;
+        }
+      }
+      if (matched) fuzzyMatchCount += 1;
+    }
+  }
+
+  let nonDirectScore = 0;
+  let matchedSynonym = false;
+  for (const count of groupMatchCounts.values()) {
+    if (count <= 0) continue;
+    matchedSynonym = true;
+    nonDirectScore += Math.min(count, MAX_CONTENT_SCORE_PER_SYNONYM_GROUP);
+  }
+
+  let matchedFuzzy = false;
+  if (fuzzyMatchCount > 0) {
+    matchedFuzzy = true;
+    nonDirectScore += Math.min(fuzzyMatchCount, MAX_CONTENT_FUZZY_SCORE);
+  }
+
+  return {
+    matchedFuzzy,
+    matchedSynonym,
+    score: Math.min(nonDirectScore, MAX_NON_DIRECT_CONTENT_SCORE),
+  };
+}
 
 export function firstParagraph(body: string): string {
   const paragraphs = body
@@ -84,6 +222,7 @@ export function rankLoadedNotes(
   query: string,
   graph: LinkGraph,
   index: NoteIndex,
+  options?: RankOptions,
 ): RankedNote[] {
   const tokens = tokenize(query);
   const indexNotes = notes.filter((note) =>
@@ -93,39 +232,111 @@ export function rankLoadedNotes(
     (note) => path.posix.basename(note.rel).toLowerCase() === "agents.md",
   );
 
+  const synonymMode = options?.synonymMode ?? "off";
+  const expandedTokens =
+    synonymMode === "off" ? [] : expandWithSynonyms(tokens, synonymMode, options?.projectSynonyms);
+  const synonymTokens = expandedTokens.filter((expanded) => expanded.source === "synonym");
+  const synonymTokenStrings = synonymTokens.map((expanded) => expanded.token);
+
+  const fuzzyEnabled = options?.fuzzy === true;
+  const fuzzyQueryTokens: FuzzyQueryToken[] = fuzzyEnabled
+    ? tokens
+        .filter(isFuzzyEligible)
+        .map((token) => ({ token, maxDistance: clampMaxFuzzyDistance(token, options?.maxFuzzyDistance) }))
+    : [];
+
   const entries = notes.map((note) => {
     let score = 0;
     const matchedBy = new Set<string>();
 
+    let titleMatchedDirect = false;
     if (note.title && containsAnyToken(note.title, tokens)) {
-      score += 8;
+      score += DIRECT_FIELD_WEIGHTS.title;
       addMatchedBy(matchedBy, "title");
+      titleMatchedDirect = true;
+    }
+    if (note.title && !titleMatchedDirect) {
+      if (synonymMode !== "off" && containsAnyToken(note.title, synonymTokenStrings)) {
+        score += SYNONYM_FIELD_WEIGHTS.title;
+        addMatchedBy(matchedBy, "title:synonym");
+      }
+      if (fuzzyEnabled && fieldHasFuzzyMatch(note.title, fuzzyQueryTokens)) {
+        score += FUZZY_FIELD_WEIGHTS.title;
+        addMatchedBy(matchedBy, "title:fuzzy");
+      }
     }
 
-    if (containsAnyToken(note.headings.map((heading) => heading.text).join("\n"), tokens)) {
-      score += 6;
+    const headingText = note.headings.map((heading) => heading.text).join("\n");
+    let headingMatchedDirect = false;
+    if (containsAnyToken(headingText, tokens)) {
+      score += DIRECT_FIELD_WEIGHTS.heading;
       addMatchedBy(matchedBy, "heading");
+      headingMatchedDirect = true;
+    }
+    if (!headingMatchedDirect && synonymMode !== "off" && containsAnyToken(headingText, synonymTokenStrings)) {
+      score += SYNONYM_FIELD_WEIGHTS.heading;
+      addMatchedBy(matchedBy, "heading:synonym");
     }
 
-    if (containsAnyToken(note.tags.join(" "), tokens)) {
-      score += 5;
+    const tagText = note.tags.join(" ");
+    let tagMatchedDirect = false;
+    if (containsAnyToken(tagText, tokens)) {
+      score += DIRECT_FIELD_WEIGHTS.tag;
       addMatchedBy(matchedBy, "tag");
+      tagMatchedDirect = true;
+    }
+    if (!tagMatchedDirect && synonymMode !== "off" && containsAnyToken(tagText, synonymTokenStrings)) {
+      score += SYNONYM_FIELD_WEIGHTS.tag;
+      addMatchedBy(matchedBy, "tag:synonym");
     }
 
-    if (containsAnyToken(JSON.stringify(note.frontmatter), tokens)) {
-      score += 4;
+    const frontmatterText = JSON.stringify(note.frontmatter);
+    let frontmatterMatchedDirect = false;
+    if (containsAnyToken(frontmatterText, tokens)) {
+      score += DIRECT_FIELD_WEIGHTS.frontmatter;
       addMatchedBy(matchedBy, "frontmatter");
+      frontmatterMatchedDirect = true;
+    }
+    if (
+      !frontmatterMatchedDirect &&
+      synonymMode !== "off" &&
+      containsAnyToken(frontmatterText, synonymTokenStrings)
+    ) {
+      score += SYNONYM_FIELD_WEIGHTS.frontmatter;
+      addMatchedBy(matchedBy, "frontmatter:synonym");
     }
 
+    let filenameMatchedDirect = false;
     if (containsAnyToken(note.rel, tokens)) {
-      score += 4;
+      score += DIRECT_FIELD_WEIGHTS.filename;
       addMatchedBy(matchedBy, "filename");
+      filenameMatchedDirect = true;
+    }
+    if (!filenameMatchedDirect) {
+      if (synonymMode !== "off" && containsAnyToken(note.rel, synonymTokenStrings)) {
+        score += SYNONYM_FIELD_WEIGHTS.filename;
+        addMatchedBy(matchedBy, "filename:synonym");
+      }
+      if (fuzzyEnabled && fieldHasFuzzyMatch(note.rel, fuzzyQueryTokens)) {
+        score += FUZZY_FIELD_WEIGHTS.filename;
+        addMatchedBy(matchedBy, "filename:fuzzy");
+      }
     }
 
     const contentMatches = Math.min(10, countTokenOccurrences(note.body, tokens));
+    let contentMatchedDirect = false;
     if (contentMatches > 0) {
       score += contentMatches;
       addMatchedBy(matchedBy, "content");
+      contentMatchedDirect = true;
+    }
+    if (!contentMatchedDirect && (synonymMode !== "off" || fuzzyEnabled)) {
+      const contentBonus = scoreNonDirectContentMatches(note.body, tokens, synonymTokens, fuzzyQueryTokens);
+      if (contentBonus.score > 0) {
+        score += contentBonus.score;
+        if (contentBonus.matchedSynonym) addMatchedBy(matchedBy, "content:synonym");
+        if (contentBonus.matchedFuzzy) addMatchedBy(matchedBy, "content:fuzzy");
+      }
     }
 
     if (

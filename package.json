@@ -9,7 +9,7 @@
     "build": "tsc",
     "start": "node dist/index.js",
     "dev": "tsx watch src/index.ts",
-    "test": "npm run build && node test/mcp-smoke.mjs"
+    "test": "npm run build && node test/note-ranking.test.mjs && node test/mcp-smoke.mjs"
   },
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.7.0"

@@ -442,6 +442,58 @@ For generic tasks, the context pack gives initial priority to central files when
 }
 ```
 
+#### Busca aproximada (fuzzy) e sinônimos (opt-in)
+
+`markdown_vault_find_relevant_notes` aceita três parâmetros opcionais para recuperar notas
+mesmo quando a query tem erro de digitação ou usa um vocabulário diferente do conteúdo.
+Por padrão ambos ficam desligados — o comportamento e o `matchedBy` continuam idênticos
+ao atual. Não usam embeddings, banco de dados ou serviços externos: tudo é calculado em
+memória com edit distance (Levenshtein) e um dicionário de sinônimos.
+
+- `fuzzy` (`boolean`, padrão `false`): quando `true`, tokens da query com 5+ caracteres
+  (e fora de uma lista de termos técnicos protegidos como `api`, `db`, `jwt`, `ts`, `npm`)
+  passam a ser comparados por distância de edição contra título, nome de arquivo e
+  conteúdo das notas — assim `"backnd"` encontra notas com `"backend"`.
+- `maxFuzzyDistance` (`number`, opcional): substitui a distância máxima padrão
+  (calculada pelo tamanho do token), sempre limitada entre `0` e `3`.
+- `synonymMode` (`"off" | "basic" | "project"`, padrão `"off"`): expande os tokens da
+  query com sinônimos antes de buscar.
+  - `"basic"` usa um pequeno dicionário técnico embutido (ex.: `auth` ↔ `login`/`jwt`/`oauth`).
+  - `"project"` carrega `<vault>/.markdown-vault/synonyms.json` e **mescla** (não substitui)
+    esse dicionário com o embutido — grupos repetidos têm os termos combinados. O arquivo é
+    um objeto `{ "grupo": ["termo1", "termo2", ...] }`; o nome do grupo também conta como
+    termo do próprio grupo. Se o arquivo não existir, a busca segue normalmente sem aviso;
+    se existir mas estiver malformado ou fora dos limites de sanidade (máx. 200 grupos,
+    50 termos/grupo, 80 caracteres/termo), o resultado inclui um campo `warnings` explicando
+    o problema, sem derrubar a busca.
+
+Matches recuperados por fuzzy/sinônimo aparecem no `matchedBy` com sufixo (ex.:
+`"title:synonym"`, `"content:fuzzy"`) e contam menos pontos que um match direto — eles
+servem para recuperar candidatos que passariam despercebidos, não para dominar o ranking.
+
+```json
+{
+  "input": {
+    "query": "autenticacao backnd",
+    "fuzzy": true,
+    "synonymMode": "project"
+  },
+  "output": {
+    "query": "autenticacao backnd",
+    "results": [
+      {
+        "path": "docs/backend/auth.md",
+        "score": 9,
+        "title": "Autenticação",
+        "matchedBy": ["title:synonym", "filename:fuzzy"],
+        "snippet": "..."
+      }
+    ],
+    "warnings": ["Project synonyms file exists but could not be parsed: .markdown-vault/synonyms.json"]
+  }
+}
+```
+
 ### `markdown_vault_safe_rename_note`
 
 ```json

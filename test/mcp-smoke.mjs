@@ -701,6 +701,127 @@ try {
   );
   assert.ok(authResult.matchedBy.includes("title"));
 
+  const noFuzzyTypo = parseToolJson(
+    await tool("markdown_vault_find_relevant_notes", {
+      path: "docs",
+      query: "backnd",
+    }),
+  );
+  const queryMatchTypes = new Set([
+    "content",
+    "filename",
+    "frontmatter",
+    "heading",
+    "tag",
+    "title",
+  ]);
+  const noFuzzyAuthResult = noFuzzyTypo.results.find(
+    (result) => result.path === "docs/backend/auth.md",
+  );
+  if (noFuzzyAuthResult) {
+    // The note may still surface from structural signals (index/backlink), but a typo
+    // must not produce a query-driven match (direct or fuzzy) without `fuzzy: true`.
+    assert.ok(
+      !noFuzzyAuthResult.matchedBy.some(
+        (match) => match.endsWith(":fuzzy") || queryMatchTypes.has(match),
+      ),
+      `without fuzzy, a typo should not produce a query match, got ${JSON.stringify(noFuzzyAuthResult.matchedBy)}`,
+    );
+  }
+
+  const fuzzyTypo = parseToolJson(
+    await tool("markdown_vault_find_relevant_notes", {
+      fuzzy: true,
+      path: "docs",
+      query: "backnd",
+    }),
+  );
+  const fuzzyAuthResult = fuzzyTypo.results.find(
+    (result) => result.path === "docs/backend/auth.md",
+  );
+  assert.ok(fuzzyAuthResult, "fuzzy search should recover docs/backend/auth.md from a typo");
+  assert.ok(
+    fuzzyAuthResult.matchedBy.some((match) => match.endsWith(":fuzzy")),
+    `expected a fuzzy match, got ${JSON.stringify(fuzzyAuthResult.matchedBy)}`,
+  );
+  assert.equal(fuzzyTypo.warnings, undefined);
+
+  const synonymBasic = parseToolJson(
+    await tool("markdown_vault_find_relevant_notes", {
+      path: "docs",
+      query: "login",
+      synonymMode: "basic",
+    }),
+  );
+  const synonymAuthResult = synonymBasic.results.find(
+    (result) => result.path === "docs/backend/auth.md",
+  );
+  assert.ok(synonymAuthResult, "synonym search should recover docs/backend/auth.md for 'login'");
+  assert.ok(
+    synonymAuthResult.matchedBy.some((match) => match.endsWith(":synonym")),
+    `expected a synonym match, got ${JSON.stringify(synonymAuthResult.matchedBy)}`,
+  );
+  assert.equal(synonymBasic.warnings, undefined);
+
+  const projectSynonymsAbsent = parseToolJson(
+    await tool("markdown_vault_find_relevant_notes", {
+      path: "docs",
+      query: "login",
+      synonymMode: "project",
+    }),
+  );
+  assert.equal(
+    projectSynonymsAbsent.warnings,
+    undefined,
+    "missing project synonyms file should not produce warnings",
+  );
+
+  await mkdir(path.join(vault, ".markdown-vault"), { recursive: true });
+  await writeFile(
+    path.join(vault, ".markdown-vault", "synonyms.json"),
+    JSON.stringify({ auth: ["sso"] }),
+    "utf-8",
+  );
+  const projectSynonymsMerged = parseToolJson(
+    await tool("markdown_vault_find_relevant_notes", {
+      path: "docs",
+      query: "sso",
+      synonymMode: "project",
+    }),
+  );
+  assert.equal(projectSynonymsMerged.warnings, undefined);
+  const projectSynonymResult = projectSynonymsMerged.results.find(
+    (result) => result.path === "docs/backend/auth.md",
+  );
+  assert.ok(
+    projectSynonymResult,
+    "project synonyms should merge with the basic dictionary and recover the note for 'sso'",
+  );
+  assert.ok(projectSynonymResult.matchedBy.some((match) => match.endsWith(":synonym")));
+
+  await writeFile(
+    path.join(vault, ".markdown-vault", "synonyms.json"),
+    "{ not valid json",
+    "utf-8",
+  );
+  const projectSynonymsInvalid = parseToolJson(
+    await tool("markdown_vault_find_relevant_notes", {
+      path: "docs",
+      query: "login",
+      synonymMode: "project",
+    }),
+  );
+  assert.ok(Array.isArray(projectSynonymsInvalid.warnings));
+  assert.match(
+    projectSynonymsInvalid.warnings[0],
+    /synonyms file exists but could not be parsed/,
+  );
+  assert.ok(
+    projectSynonymsInvalid.results.some((result) => result.path === "docs/backend/auth.md"),
+    "an invalid project synonyms file should not break the search",
+  );
+  await rm(path.join(vault, ".markdown-vault"), { force: true, recursive: true });
+
   const renameDryRun = parseToolJson(
     await tool("markdown_vault_safe_rename_note", {
       dryRun: true,
